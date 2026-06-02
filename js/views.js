@@ -9,6 +9,9 @@ function churnBadge(c){if(c==='alto')return'<span class="badge churn-high">Risco
 function progressPct(cl){if(!cl.checkpoints||!cl.checkpoints.length)return 0;return Math.round((cl.done.length/cl.checkpoints.length)*100);}
 function mesStrip(mes){let h='<div class="mes-strip">';for(let i=1;i<=12;i++)h+=`<div class="mes-dot ${i<mes?'done':i===mes?'cur':''}" title="Mês ${i}"></div>`;return h+'</div>';}
 function ownerTag(r){if(r==='Leo')return'<span class="owner-tag owner-leo">Leo</span>';if(r==='João Pedro')return'<span class="owner-tag owner-joao">João Pedro</span>';return'<span class="owner-tag owner-client">'+r+'</span>';}
+function docIcon(tipo){return({briefing:'📋',contrato:'📑',qbr:'📊',apresentacao:'🖥',gravacao:'🎥',outro:'📄'})[tipo]||'📄';}
+function docTipoLabel(tipo){return({briefing:'Briefings',contrato:'Contratos',qbr:'QBR / Relatórios',apresentacao:'Apresentações',gravacao:'Gravações',outro:'Outros'})[tipo]||'Outros';}
+function formatBytes(n){if(!n)return'';if(n<1024)return n+' B';if(n<1024*1024)return Math.round(n/1024)+' KB';return(n/(1024*1024)).toFixed(1)+' MB';}
 
 function calcMesAtual(dataInicio){
   if(!dataInicio) return 1;
@@ -90,7 +93,7 @@ function goBack(){
 function showClientTab(name,btn){
   document.querySelectorAll('.ctab').forEach(t=>t.classList.remove('active'));
   btn.classList.add('active');
-  ['overview','reunioes','metas','actions'].forEach(t=>document.getElementById('ctab-'+t).style.display='none');
+  ['overview','reunioes','metas','actions','documentos'].forEach(t=>document.getElementById('ctab-'+t).style.display='none');
   document.getElementById('ctab-'+name).style.display='block';
 }
 
@@ -106,7 +109,7 @@ function renderClientView(id){
   document.getElementById('cv-badges').innerHTML=`<span class="badge mrr-badge">${fmtMoney(liquido)}/mês</span><span class="badge phase-badge">${cl.fase}</span>${churnBadge(cl.churn)}`;
   const acts=document.getElementById('cv-actions');
   acts.innerHTML=mode==='admin'?`<button class="topbar-btn" onclick="openClientModal('${cl.id}')">Editar</button><button class="topbar-btn" style="color:var(--red)" onclick="deleteClient('${cl.id}')">Remover</button>`:'';
-  renderOverview(cl);renderReunioes(cl);renderMetas(cl);renderActionItems(cl);
+  renderOverview(cl);renderReunioes(cl);renderMetas(cl);renderActionItems(cl);renderDocumentos(cl);
 }
 
 function renderOverview(cl){
@@ -235,3 +238,37 @@ function openPopup(reuniaoId){
   document.getElementById('popup-overlay').classList.add('show');
 }
 function closePopup(){document.getElementById('popup-overlay').classList.remove('show');}
+
+// ── DOCUMENTOS ──
+function renderDocumentos(cl){
+  const clDocs=documentos.filter(d=>d.clienteId===cl.id);
+  const adminBtn=mode==='admin'?`<button class="edit-btn" onclick="openDocModal('${cl.id}')">+ Documento</button>`:'';
+  if(clDocs.length===0){
+    document.getElementById('ctab-documentos').innerHTML=adminBtn+'<div class="empty-state">Nenhum documento ainda.</div>';
+    return;
+  }
+  const order=['briefing','contrato','qbr','apresentacao','gravacao','outro'];
+  const byTipo={};
+  clDocs.forEach(d=>{const t=d.tipo||'outro';(byTipo[t]=byTipo[t]||[]).push(d);});
+  let html=adminBtn;
+  order.forEach(t=>{
+    if(!byTipo[t])return;
+    html+=`<div class="mini-title" style="margin-top:16px">${docTipoLabel(t)}</div>`;
+    byTipo[t].sort((a,b)=>(b.uploadedAt||'').localeCompare(a.uploadedAt||''));
+    byTipo[t].forEach(d=>{
+      const rmBtn=mode==='admin'?`<button class="doc-rm" onclick="event.stopPropagation();deleteDoc('${d.id}')" title="Remover">✕</button>`:'';
+      const dt=d.uploadedAt?new Date(d.uploadedAt).toLocaleDateString('pt-BR'):'';
+      const meta=[formatBytes(d.tamanho),dt].filter(Boolean).join(' · ');
+      html+=`<div class="doc-item" onclick="window.open('${d.url}','_blank','noopener')">
+        <div class="doc-icon">${docIcon(t)}</div>
+        <div class="doc-info">
+          <div class="doc-name">${d.nome}</div>
+          <div class="doc-meta">${meta}</div>
+        </div>
+        <span class="doc-arrow">↗</span>
+        ${rmBtn}
+      </div>`;
+    });
+  });
+  document.getElementById('ctab-documentos').innerHTML=html;
+}

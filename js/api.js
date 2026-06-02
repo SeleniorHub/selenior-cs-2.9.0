@@ -14,8 +14,18 @@ function applyData(d){
   metas=(d.Metas||[]).filter(r=>r[0]).map(rowToMeta);
   objetivos=(d.Objetivos||[]).filter(r=>r[0]).map(rowToObj);
   actionItems=(d.ActionItems||[]).filter(r=>r[0]).map(rowToAI);
+  documentos=(d.Documentos||[]).filter(r=>r[0]).map(rowToDoc);
   renderAll();
   if(currentClientId) renderClientView(currentClientId);
+}
+
+function readFileAsBase64(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>{const r=reader.result;resolve(r.split(',')[1]);};
+    reader.onerror=()=>reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }
 
 async function loadData(){
@@ -65,3 +75,7 @@ function rowToObj(r){return{id:String(r[0]),clienteId:String(r[1]),texto:r[2]||'
 // Mappers — ActionItems: id|clienteId|reuniaoId|texto|responsavel|prazo|concluido
 function aiToRow(a){return[a.id,a.clienteId,a.reuniaoId||'',a.texto,a.responsavel||'',a.prazo||'',a.concluido?'1':'0'];}
 function rowToAI(r){return{id:String(r[0]),clienteId:String(r[1]),reuniaoId:String(r[2]||''),texto:r[3]||'',responsavel:r[4]||'',prazo:r[5]||'',concluido:String(r[6])==='1'};}
+
+// Mappers — Documentos: id|clienteId|tipo|nome|driveFileId|url|tamanho|uploadedAt
+function docToRow(d){return[d.id,d.clienteId,d.tipo||'outro',d.nome,d.driveFileId||'',d.url||'',d.tamanho||0,d.uploadedAt||''];}
+function rowToDoc(r){return{id:String(r[0]),clienteId:String(r[1]),tipo:r[2]||'outro',nome:r[3]||'',driveFileId:r[4]||'',url:r[5]||'',tamanho:parseInt(r[6])||0,uploadedAt:r[7]||''};}

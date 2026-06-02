@@ -6,7 +6,7 @@
 <title>Selenior CS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=2.5.0">
+<link rel="stylesheet" href="css/styles.css?v=2.6.0">
 </head>
 <body>
 
@@ -79,12 +79,14 @@
       <div class="ctab" onclick="showClientTab('reunioes',this)">Reuniões</div>
       <div class="ctab" onclick="showClientTab('metas',this)">Metas & Objetivos</div>
       <div class="ctab" onclick="showClientTab('actions',this)">Action items</div>
+      <div class="ctab" onclick="showClientTab('documentos',this)">Documentos</div>
     </div>
     <div class="client-content">
       <div id="ctab-overview"></div>
       <div id="ctab-reunioes" style="display:none"></div>
       <div id="ctab-metas" style="display:none"></div>
       <div id="ctab-actions" style="display:none"></div>
+      <div id="ctab-documentos" style="display:none"></div>
     </div>
   </div>
 </div>
@@ -211,12 +213,38 @@
   </div>
 </div>
 
+<!-- MODAL DOCUMENTO -->
+<div class="modal-overlay" id="modal-doc" onclick="if(event.target===this)closeDocModal()">
+  <div class="modal">
+    <h3>Novo documento</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Tipo</label>
+        <select id="md-tipo">
+          <option value="briefing">Briefing</option>
+          <option value="contrato">Contrato</option>
+          <option value="qbr">QBR / Relatório</option>
+          <option value="apresentacao">Apresentação</option>
+          <option value="gravacao">Gravação</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Nome</label><input id="md-nome" type="text" placeholder="Nome do arquivo"></div>
+    </div>
+    <div class="form-group"><label>Arquivo</label><input id="md-file" type="file"></div>
+    <div class="form-hint">Máximo recomendado: ~20MB. Arquivos vão pra pasta do cliente no Drive.</div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeDocModal()">Cancelar</button>
+      <button class="btn-save" id="md-save-btn" onclick="saveDoc()">Upload</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
-<script src="js/config.js?v=2.5.0" defer></script>
-<script src="js/api.js?v=2.5.0" defer></script>
-<script src="js/views.js?v=2.5.0" defer></script>
-<script src="js/modals.js?v=2.5.0" defer></script>
-<script src="js/auth.js?v=2.5.0" defer></script>
+<script src="js/config.js?v=2.6.0" defer></script>
+<script src="js/api.js?v=2.6.0" defer></script>
+<script src="js/views.js?v=2.6.0" defer></script>
+<script src="js/modals.js?v=2.6.0" defer></script>
+<script src="js/auth.js?v=2.6.0" defer></script>
 </body>
 </html>

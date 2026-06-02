@@ -140,3 +140,52 @@ async function deleteAI(id){
   actionItems=actionItems.filter(x=>x.id!==id);renderClientView(a.clienteId);
   try{await deleteRow('ActionItems',id);showToast('Removido.');}catch(e){showToast('Erro',true);}
 }
+
+// ── MODAL DOCUMENTO ──
+function openDocModal(clienteId){
+  document.getElementById('md-tipo').value='briefing';
+  document.getElementById('md-nome').value='';
+  document.getElementById('md-file').value='';
+  document.getElementById('modal-doc').dataset.clienteId=clienteId;
+  document.getElementById('modal-doc').classList.add('open');
+}
+function closeDocModal(){document.getElementById('modal-doc').classList.remove('open');}
+
+// Auto-preenche o nome com o filename quando o arquivo é selecionado.
+document.addEventListener('change',e=>{
+  if(e.target&&e.target.id==='md-file'&&e.target.files[0]){
+    const nomeInput=document.getElementById('md-nome');
+    if(!nomeInput.value.trim()) nomeInput.value=e.target.files[0].name;
+  }
+});
+
+async function saveDoc(){
+  const fileInput=document.getElementById('md-file');
+  const file=fileInput.files[0];
+  if(!file){showToast('Selecione um arquivo.',true);return;}
+  const clienteId=document.getElementById('modal-doc').dataset.clienteId;
+  const tipo=document.getElementById('md-tipo').value;
+  const nome=document.getElementById('md-nome').value.trim()||file.name;
+  const btn=document.getElementById('md-save-btn');
+  btn.disabled=true;btn.textContent='Enviando...';
+  setSyncStatus('syncing','Enviando '+nome+'...');
+  try{
+    const base64=await readFileAsBase64(file);
+    await apiPost_({action:'uploadDoc',clienteId,tipo,nome,mimeType:file.type||'application/octet-stream',base64});
+    closeDocModal();
+    showToast('Documento salvo.');
+    await loadData();
+  }catch(e){
+    showToast('Erro ao enviar: '+(e.message||''),true);
+    setSyncStatus('error','Erro');
+  }finally{
+    btn.disabled=false;btn.textContent='Upload';
+  }
+}
+
+async function deleteDoc(id){
+  if(!confirm('Remover este documento? O arquivo no Drive vai pra lixeira.'))return;
+  const d=documentos.find(x=>x.id===id);if(!d)return;
+  documentos=documentos.filter(x=>x.id!==id);renderClientView(d.clienteId);
+  try{await apiPost_({action:'deleteDoc',id});showToast('Removido.');}catch(e){showToast('Erro ao remover',true);}
+}
