@@ -60,9 +60,10 @@ function renderPhaseChart(){
 }
 
 function renderRespChart(){
-  const labels=['Leo','João Pedro','Cliente'];
+  const labels=['Leo','João Pedro','Clientes'];
   const colors=['#1A3A5C','#3D2B69','#2D6A4F'];
-  const counts=labels.map(r=>actionItems.filter(a=>!a.concluido&&a.responsavel===r).length);
+  const keys=['Leo','João Pedro','Cliente'];
+  const counts=keys.map(r=>actionItems.filter(a=>!a.concluido&&a.responsavel===r).length);
   const ctx=document.getElementById('chart-resp');
   if(!ctx) return;
   if(respChart) respChart.destroy();
@@ -110,9 +111,9 @@ function renderCohortTable(){
     totals.total+=total;counts.forEach((v,i)=>totals.fases[i]+=v);totals.churn+=churn;totals.mrr+=mrr;
     html+='<tr>';
     html+='<td class="cohort-label">'+label+'</td>';
-    html+='<td class="cohort-count">'+total+'</td>';
-    counts.forEach(c=>html+='<td class="cohort-cell'+(c>0?' has-val':'')+'">'+(c||'')+'</td>');
-    html+='<td class="cohort-churn'+(churn>0?' has-val':'')+'">'+(churn||'')+'</td>';
+    html+='<td class="cohort-count cohort-cell'+(total>0?' has-val':'')+'"'+(total>0?' onclick="openSafraPopup(\''+k+'\',\'__all__\')"':'')+'>'+total+'</td>';
+    counts.forEach((c,i)=>{const f=FASES[i];html+='<td class="cohort-cell'+(c>0?' has-val':'')+'"'+(c>0?' onclick="openSafraPopup(\''+k+'\',\''+f+'\')"':'')+'>'+(c||'')+'</td>';});
+    html+='<td class="cohort-churn'+(churn>0?' has-val':'')+'"'+(churn>0?' onclick="openSafraPopup(\''+k+'\',\'__churn__\')"':'')+'>'+(churn||'')+'</td>';
     html+='<td class="cohort-mrr">'+(mrr?fmtMoney(mrr):'—')+'</td>';
     html+='</tr>';
   });
@@ -159,4 +160,46 @@ function renderAlerts(){
       +'<div class="alert-info"><div class="alert-name">'+cl.nome+'</div><div class="alert-tags">'+tags+'</div></div>'
       +'<span style="font-size:16px;color:var(--text-3)">›</span></div>';
   }).join('');
+}
+
+// Drill-down: clica numa célula da safra → lista os clientes daquela coorte+categoria.
+function openSafraPopup(monthKey,category){
+  const date=new Date(monthKey+'-01');
+  const monthLabel=date.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  const isChurn=category==='__churn__';
+  const isAll=category==='__all__';
+  const categoryLabel=isChurn?'Churned':isAll?'Todos os clientes':category;
+  const matching=clients.filter(cl=>{
+    if(!cl.dataInicio) return false;
+    const d=new Date(cl.dataInicio);
+    const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    if(k!==monthKey) return false;
+    if(isAll) return true;
+    if(isChurn) return cl.status==='churned';
+    return (cl.status||'ativo')==='ativo'&&cl.fase===category;
+  });
+  matching.sort((a,b)=>a.nome.localeCompare(b.nome));
+  const items=matching.map(cl=>{
+    const idx=clients.indexOf(cl);const ci=colorFor(idx);
+    const status=cl.status||'ativo';
+    let detail;
+    if(status==='churned'){
+      detail=cl.dataFim?'Saiu em '+new Date(cl.dataFim).toLocaleDateString('pt-BR'):'Sem data de saída';
+    }else{
+      const liquido=calcMRR(cl).liquido;
+      detail=fmtMoney(liquido)+'/mês · '+cl.fase+(status==='pausado'?' · Pausado':'');
+    }
+    return '<div class="popup-client-row" onclick="closePopup();openClientView(\''+cl.id+'\')">'
+      +'<div class="avatar" style="background:'+ci.bg+';color:'+ci.txt+'">'+initials(cl.nome)+'</div>'
+      +'<div class="popup-client-info"><div class="popup-client-name">'+cl.nome+'</div><div class="popup-client-meta">'+detail+'</div></div>'
+      +'<span style="font-size:14px;color:var(--text-3)">›</span></div>';
+  }).join('');
+  document.getElementById('popup-content').innerHTML=
+    '<div class="popup-header">'
+    +'<div><div class="popup-title">Safra '+monthLabel+' — '+categoryLabel+'</div>'
+    +'<div class="popup-sub">'+matching.length+' cliente'+(matching.length===1?'':'s')+'</div></div>'
+    +'<button class="popup-close" onclick="closePopup()">✕</button>'
+    +'</div>'
+    +'<div class="popup-body">'+(items||'<div class="empty-state">Sem clientes nesta categoria.</div>')+'</div>';
+  document.getElementById('popup-overlay').classList.add('show');
 }

@@ -230,7 +230,8 @@ function renderActionItems(cl){
   function aiHtml(a){
     const checkEl=mode==='admin'?`<div class="ai-check ${a.concluido?'done':''}" onclick="toggleAI('${a.id}')">${a.concluido?'✓':''}</div>`:`<div class="ai-check ${a.concluido?'done':''}">${a.concluido?'✓':''}</div>`;
     const rmBtn=mode==='admin'?`<button onclick="deleteAI('${a.id}')" style="background:transparent;border:none;cursor:pointer;color:var(--text-3);font-size:11px">✕</button>`:'';
-    return`<div class="ai-item">${checkEl}<div class="ai-info"><div class="ai-text ${a.concluido?'done':''}">${a.texto}</div><div class="ai-meta">${a.prazo||'Sem prazo'}${a.reuniaoId&&a.reuniaoId!=='undefined'?' · reunião vinculada':''}</div></div>${ownerTag(a.responsavel)}${rmBtn}</div>`;
+    const resolvedResp=a.responsavel==='Cliente'?(clients.find(c=>c.id===a.clienteId)?.nome||'Cliente'):a.responsavel;
+    return`<div class="ai-item">${checkEl}<div class="ai-info"><div class="ai-text ${a.concluido?'done':''}">${a.texto}</div><div class="ai-meta">${a.prazo||'Sem prazo'}${a.reuniaoId&&a.reuniaoId!=='undefined'?' · reunião vinculada':''}</div></div>${ownerTag(resolvedResp)}${rmBtn}</div>`;
   }
   let html=adminBtn;
   if(pending.length>0){html+=`<div class="ai-section-title" style="margin-top:16px">Pendentes (${pending.length})</div>`+pending.map(aiHtml).join('');}
@@ -244,7 +245,10 @@ function openPopup(reuniaoId){
   const r=reunioes.find(x=>x.id===reuniaoId);if(!r)return;
   const ais=actionItems.filter(a=>a.reuniaoId===reuniaoId);
   const pontosHtml=(r.pontos||[]).map(p=>`<div class="popup-bullet"><div class="bullet-dot bullet-blue"></div><span>${p}</span></div>`).join('');
-  const aisHtml=ais.map(a=>`<div class="popup-bullet"><div class="bullet-dot bullet-green"></div><span><strong style="font-weight:500">${a.responsavel}</strong> — ${a.texto}</span></div>`).join('');
+  const aisHtml=ais.map(a=>{
+    const resp=a.responsavel==='Cliente'?(clients.find(c=>c.id===a.clienteId)?.nome||'Cliente'):a.responsavel;
+    return`<div class="popup-bullet"><div class="bullet-dot bullet-green"></div><span><strong style="font-weight:500">${resp}</strong> — ${a.texto}</span></div>`;
+  }).join('');
   document.getElementById('popup-content').innerHTML=`
     <div class="popup-header">
       <div><div class="popup-title">${r.titulo}</div><div class="popup-sub">${new Date(r.data).toLocaleDateString('pt-BR')}${r.duracao?' · '+r.duracao:''}${r.participantes?' · '+r.participantes:''}</div></div>

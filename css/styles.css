@@ -66,9 +66,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .cohort-table td.cohort-label{font-family:var(--font);color:var(--text);text-align:left;text-transform:capitalize;font-weight:500}
 .cohort-table td.cohort-count{font-weight:500;color:var(--text)}
 .cohort-table td.cohort-cell{color:var(--text-3)}
-.cohort-table td.cohort-cell.has-val{background:rgba(45,106,79,0.08);color:var(--text)}
+.cohort-table td.cohort-cell.has-val{background:rgba(45,106,79,0.08);color:var(--text);cursor:pointer;transition:background 0.1s}
+.cohort-table td.cohort-cell.has-val:hover{background:rgba(45,106,79,0.18)}
 .cohort-table td.cohort-churn{color:var(--text-3)}
-.cohort-table td.cohort-churn.has-val{background:rgba(139,26,26,0.10);color:var(--red);font-weight:500}
+.cohort-table td.cohort-churn.has-val{background:rgba(139,26,26,0.10);color:var(--red);font-weight:500;cursor:pointer;transition:background 0.1s}
+.cohort-table td.cohort-churn.has-val:hover{background:rgba(139,26,26,0.20)}
 .cohort-table td.cohort-mrr{color:var(--text);text-align:right}
 .cohort-table th.cohort-churn-col{color:var(--red)}
 .cohort-table tr.cohort-totals td{font-weight:500;color:var(--text);border-top:2px solid var(--border-strong);border-bottom:none;background:var(--surface2)}
@@ -237,6 +239,11 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .bullet-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px}
 .bullet-blue{background:var(--blue)}
 .bullet-green{background:var(--green)}
+.popup-client-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);cursor:pointer;transition:background 0.1s;margin-bottom:4px}
+.popup-client-row:hover{background:var(--surface2)}
+.popup-client-info{flex:1;min-width:0}
+.popup-client-name{font-size:13px;font-weight:500}
+.popup-client-meta{font-size:11px;color:var(--text-3);margin-top:2px}
 
 /* MODALS */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.35);display:none;align-items:center;justify-content:center;z-index:300}

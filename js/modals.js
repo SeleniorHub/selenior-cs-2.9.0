@@ -117,6 +117,9 @@ async function deleteObj(id){
 function openAIModal(clienteId){
   document.getElementById('ai-texto').value='';document.getElementById('ai-resp').value='Leo';
   document.getElementById('ai-prazo').value='';
+  const cl=clients.find(c=>c.id===clienteId);
+  const clienteOpt=document.querySelector('#ai-resp option[value="Cliente"]');
+  if(clienteOpt) clienteOpt.textContent=cl?cl.nome:'Cliente';
   const sel=document.getElementById('ai-reuniao');
   sel.innerHTML='<option value="">Nenhuma</option>';
   reunioes.filter(r=>r.clienteId===clienteId).forEach(r=>{sel.innerHTML+=`<option value="${r.id}">${r.titulo} (${new Date(r.data).toLocaleDateString('pt-BR')})</option>`;});
