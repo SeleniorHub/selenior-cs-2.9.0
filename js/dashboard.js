@@ -281,7 +281,7 @@ function renderActionRow(a){
   return `<div class="actions-row" onclick="openClientView('${a.clienteId}')">
     ${check}
     <div class="actions-info">
-      <div class="actions-text ${a.concluido?'done':''}">${a.texto}</div>
+      <div class="actions-text ${a.concluido?'done':''}" style="white-space:pre-wrap">${a.texto}</div>
       <div class="actions-meta">${avatarMini}<span class="actions-cliente">${clienteNome}</span></div>
     </div>
     ${ownerTag(resp)}
