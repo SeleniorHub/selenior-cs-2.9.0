@@ -7,11 +7,104 @@ function activeClients(){return clients.filter(c=>(c.status||'ativo')==='ativo')
 function renderDashboard(){
   if(!document.getElementById('view-dashboard')) return;
   renderDashHeader();
+  renderBriefing();
   renderKPIs();
   renderPhaseChart();
   renderMRRForecast();
   renderCohortTable();
   renderAlerts();
+}
+
+function renderBriefing(){
+  const el=document.getElementById('briefing-card');if(!el)return;
+  const now=new Date();
+  const hour=now.getHours();
+  const greeting=hour<12?'Bom dia':hour<18?'Boa tarde':'Boa noite';
+  const todayStr=now.toISOString().split('T')[0];
+  const dateLabel=now.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
+  const today=new Date(now);today.setHours(0,0,0,0);
+
+  // ── Reuniões de hoje ──
+  const todayMeetings=reunioes.filter(r=>r.data===todayStr);
+  let meetHtml='';
+  if(!todayMeetings.length){
+    meetHtml='<div class="briefing-empty">Sem reuniões hoje ☀️</div>';
+  }else{
+    meetHtml=todayMeetings.map(r=>{
+      const cl=clients.find(c=>c.id===r.clienteId);
+      return`<div class="briefing-item" onclick="openPopup('${r.id}')">
+        <div class="briefing-dot briefing-dot-blue"></div>
+        <div><div class="briefing-item-text">${r.titulo}</div>
+        <div class="briefing-item-sub">${cl?cl.nome:''}${r.duracao?' · '+r.duracao:''}</div></div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Action items urgentes (vencidos + hoje) ──
+  const urgentAI=actionItems.filter(a=>{
+    if(a.concluido||!a.dataPrazo)return false;
+    const dp=new Date(a.dataPrazo);dp.setHours(0,0,0,0);
+    return dp<=today;
+  }).sort((a,b)=>new Date(a.dataPrazo)-new Date(b.dataPrazo)).slice(0,5);
+  let aiHtml='';
+  if(!urgentAI.length){
+    aiHtml='<div class="briefing-empty">Nada urgente no momento ✓</div>';
+  }else{
+    aiHtml=urgentAI.map(a=>{
+      const cl=clients.find(c=>c.id===a.clienteId);
+      const dp=new Date(a.dataPrazo);dp.setHours(0,0,0,0);
+      const diff=Math.round((dp-today)/(1000*60*60*24));
+      const dLabel=diff===0?'Hoje':Math.abs(diff)+'d de atraso';
+      const isOverdue=diff<0;
+      const shortText=a.texto.split('\n')[0].substring(0,55)+(a.texto.length>55?'…':'');
+      return`<div class="briefing-item" onclick="openClientViewTab('${a.clienteId}','actions')">
+        <div class="briefing-dot ${isOverdue?'briefing-dot-red':'briefing-dot-amber'}"></div>
+        <div><div class="briefing-item-text">${shortText}</div>
+        <div class="briefing-item-sub">${cl?cl.nome:''} · ${dLabel}</div></div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Clientes em zona de risco (health < 31) ──
+  const atRisk=activeClients()
+    .map(cl=>({cl,hs:calcHealthScore(cl)}))
+    .filter(x=>x.hs<31)
+    .sort((a,b)=>a.hs-b.hs)
+    .slice(0,4);
+  let riskHtml='';
+  if(!atRisk.length){
+    riskHtml='<div class="briefing-empty">Todos os clientes saudáveis ✓</div>';
+  }else{
+    riskHtml=atRisk.map(({cl,hs})=>{
+      const hl=healthLabel(hs);
+      return`<div class="briefing-item" onclick="openClientView('${cl.id}')">
+        <div class="briefing-dot briefing-dot-red"></div>
+        <div><div class="briefing-item-text">${cl.nome}</div>
+        <div class="briefing-item-sub"><span class="health-badge ${hl.cls}" style="font-size:10px;padding:2px 7px">${hs}</span> · ${cl.nicho}</div></div>
+      </div>`;
+    }).join('');
+  }
+
+  const countBadge=n=>n>0?`<span class="actions-count">${n}</span>`:'';
+  el.innerHTML=`
+    <div class="briefing-header">
+      <div class="briefing-greeting">${greeting} — <span style="text-transform:capitalize">${dateLabel}</span></div>
+      <div class="briefing-time">${now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+    </div>
+    <div class="briefing-cols">
+      <div class="briefing-col">
+        <div class="briefing-col-title">Reuniões hoje ${countBadge(todayMeetings.length)}</div>
+        ${meetHtml}
+      </div>
+      <div class="briefing-col">
+        <div class="briefing-col-title">Urgente ${countBadge(urgentAI.length)}</div>
+        ${aiHtml}
+      </div>
+      <div class="briefing-col">
+        <div class="briefing-col-title">Atenção ${countBadge(atRisk.length)}</div>
+        ${riskHtml}
+      </div>
+    </div>`;
 }
 
 function renderDashHeader(){
