@@ -4,7 +4,7 @@ function initials(n){return n.split(' ').slice(0,2).map(w=>w[0]).join('').toUppe
 function colorFor(i){return AVATAR_COLORS[i%AVATAR_COLORS.length];}
 function parseMoney(s){return parseInt((String(s)||'0').replace(/\D/g,''))||0;}
 function fmtMoney(n){if(n>=1000000)return'R$'+(n/1000000).toFixed(1)+'M';if(n>=1000)return'R$'+Math.round(n/1000)+'k';return'R$'+n;}
-function calcMRR(cl){const bruto=parseMoney(cl.mrr);let ded=0;if(cl.comissaoVal){const v=parseFloat(String(cl.comissaoVal).replace(',','.'))||0;ded=cl.comissaoTipo==='pct'?Math.round(bruto*v/100):Math.round(v);}return{bruto,deducao:ded,liquido:bruto-ded};}
+function calcMRR(cl){const bruto=parseMoney(cl.mrr);let comissao=0;if(cl.comissaoVal){const v=parseFloat(String(cl.comissaoVal).replace(',','.'))||0;comissao=cl.comissaoTipo==='pct'?Math.round(bruto*v/100):Math.round(v);}const custo=parseMoney(cl.custo||'0');return{bruto,comissao,custo,deducao:comissao+custo,liquido:bruto-comissao-custo};}
 function churnBadge(c){if(c==='alto')return'<span class="badge churn-high">Risco alto</span>';if(c==='médio')return'<span class="badge churn-med">Risco médio</span>';return'<span class="badge churn-low">Risco baixo</span>';}
 function progressPct(cl){if(!cl.checkpoints||!cl.checkpoints.length)return 0;return Math.round((cl.done.length/cl.checkpoints.length)*100);}
 function mesStrip(mes){let h='<div class="mes-strip">';for(let i=1;i<=12;i++)h+=`<div class="mes-dot ${i<mes?'done':i===mes?'cur':''}" title="Mês ${i}"></div>`;return h+'</div>';}
@@ -36,11 +36,13 @@ function renderAll(){
   renderSummary();renderList();
   const dashVisible=document.getElementById('view-dashboard')?.style.display!=='none';
   const actionsVisible=document.getElementById('view-actions')?.style.display!=='none';
+  const reunioesVisible=document.getElementById('view-reunioes')?.style.display!=='none';
   if(dashVisible&&typeof renderDashboard==='function') renderDashboard();
   if(actionsVisible&&typeof renderActionsPage==='function') renderActionsPage();
+  if(reunioesVisible) renderReunioesView();
 }
 
-const VIEW_TITLES={dashboard:'Panorama',actions:'Action items',clientes:'Clientes'};
+const VIEW_TITLES={dashboard:'Panorama',actions:'Action items',clientes:'Clientes',reunioes:'Reuniões'};
 
 function showMainView(view,btn){
   if(btn){document.querySelectorAll('.side-nav-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');}
@@ -49,12 +51,14 @@ function showMainView(view,btn){
   document.getElementById('view-dashboard').style.display=view==='dashboard'?'block':'none';
   document.getElementById('view-actions').style.display=view==='actions'?'block':'none';
   document.getElementById('view-list').style.display=view==='clientes'?'block':'none';
+  document.getElementById('view-reunioes').style.display=view==='reunioes'?'block':'none';
   document.getElementById('view-client').style.display='none';
   document.getElementById('topbar-context').textContent=VIEW_TITLES[view]||'';
   const isAdmin=mode==='admin';
   document.getElementById('add-btn-top').style.display=(isAdmin&&view==='clientes')?'inline-flex':'none';
   if(view==='dashboard'&&typeof renderDashboard==='function') renderDashboard();
   if(view==='actions'&&typeof renderActionsPage==='function') renderActionsPage();
+  if(view==='reunioes') renderReunioesView();
 }
 
 function renderSummary(){
@@ -64,7 +68,7 @@ function renderSummary(){
   document.getElementById('summary-grid').innerHTML=`
     <div class="metric"><div class="metric-label">Clientes ativos</div><div class="metric-value">${total}</div><div class="metric-sub">contratos vigentes</div></div>
     <div class="metric"><div class="metric-label">MRR bruto</div><div class="metric-value">${fmtMoney(mrrB)}</div><div class="metric-sub">receita total mensal</div></div>
-    <div class="metric"><div class="metric-label">Comissões</div><div class="metric-value" style="color:var(--red)">-${fmtMoney(mrrB-mrrL)}</div><div class="metric-sub">dedução de indicações</div></div>
+    <div class="metric"><div class="metric-label">Deduções</div><div class="metric-value" style="color:var(--red)">-${fmtMoney(mrrB-mrrL)}</div><div class="metric-sub">comissões + custos</div></div>
     <div class="metric"><div class="metric-label">MRR líquido</div><div class="metric-value" style="color:var(--green)">${fmtMoney(mrrL)}</div><div class="metric-sub">${alto>0?alto+' em risco alto':'tudo ok'}</div></div>`;
 }
 
@@ -146,7 +150,7 @@ function renderClientView(id){
 }
 
 function renderOverview(cl){
-  const{bruto,deducao,liquido}=calcMRR(cl);
+  const{bruto,comissao,custo,liquido}=calcMRR(cl);
   const doneNorm=(cl.done||[]).map(s=>s.trim().toLowerCase());
   const cpHtml=(cl.checkpoints||[]).map(cp=>{const done=doneNorm.includes(cp.trim().toLowerCase());return`<div class="cp-item"><div class="cp-dot ${done?'cp-done-dot':'cp-todo-dot'}"></div><span class="${done?'cp-done-lbl':''}">${cp}</span></div>`;}).join('');
   const comissaoInfo=cl.indicador?`<div style="margin-top:8px;font-size:12px;color:var(--text-3)">Indicado por <strong style="color:var(--text-2)">${cl.indicador}</strong>${cl.comissaoVal?' · '+(cl.comissaoTipo==='pct'?cl.comissaoVal+'%':'R$'+cl.comissaoVal):''}</div>`:'';
@@ -158,7 +162,8 @@ function renderOverview(cl){
       <div class="mini-card"><div class="mini-title">Financeiro</div>
         <div class="kpi-row">
           <div class="kpi"><div class="kpi-val">${fmtMoney(bruto)}</div><div class="kpi-lbl">MRR bruto</div></div>
-          ${deducao>0?`<div class="kpi"><div class="kpi-val red">-${fmtMoney(deducao)}</div><div class="kpi-lbl">Comissão</div></div>`:''}
+          ${comissao>0?`<div class="kpi"><div class="kpi-val red">-${fmtMoney(comissao)}</div><div class="kpi-lbl">Comissão</div></div>`:''}
+          ${custo>0?`<div class="kpi"><div class="kpi-val red">-${fmtMoney(custo)}</div><div class="kpi-lbl">Custo</div></div>`:''}
           <div class="kpi"><div class="kpi-val green">${fmtMoney(liquido)}</div><div class="kpi-lbl">Líquido</div></div>
         </div>
         ${comissaoInfo}
@@ -276,6 +281,87 @@ function openPopup(reuniaoId){
   document.getElementById('popup-overlay').classList.add('show');
 }
 function closePopup(){document.getElementById('popup-overlay').classList.remove('show');}
+
+// ── REUNIÕES CALENDAR VIEW ──
+let reunioesViewDate=new Date();
+
+function renderReunioesView(){
+  const year=reunioesViewDate.getFullYear(),month=reunioesViewDate.getMonth();
+  const monthReunioes=reunioes.filter(r=>{
+    if(!r.data)return false;const d=new Date(r.data);
+    return d.getFullYear()===year&&d.getMonth()===month;
+  }).sort((a,b)=>new Date(b.data)-new Date(a.data));
+  const firstDay=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const t=new Date();const ty=t.getFullYear(),tm=t.getMonth(),td=t.getDate();
+  const meetDays=new Set(monthReunioes.map(r=>new Date(r.data).getDate()));
+  let calHtml='<div class="cal-grid">';
+  ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'].forEach(d=>{calHtml+=`<div class="cal-day-hdr">${d}</div>`;});
+  for(let i=0;i<firstDay;i++) calHtml+='<div class="cal-cell"></div>';
+  for(let d=1;d<=daysInMonth;d++){
+    const isToday=ty===year&&tm===month&&td===d;
+    const hasMt=meetDays.has(d);
+    calHtml+=`<div class="cal-cell${isToday?' cal-today':''}${hasMt?' cal-has-meeting':''}"${hasMt?` onclick="filterReunioesByDay(${d})"`:''}>`;
+    calHtml+=`<div class="cal-day-num">${d}</div>`;
+    if(hasMt) calHtml+='<div class="cal-dot"></div>';
+    calHtml+='</div>';
+  }
+  calHtml+='</div>';
+  const mLabel=new Date(year,month,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  document.getElementById('reunioes-nav-month').textContent=mLabel.charAt(0).toUpperCase()+mLabel.slice(1);
+  document.getElementById('reunioes-cal').innerHTML=calHtml;
+  const addBtn=document.getElementById('reunioes-add-btn');
+  if(addBtn) addBtn.style.display=mode==='admin'?'inline-flex':'none';
+  renderReunioesList(monthReunioes,false);
+}
+
+function filterReunioesByDay(day){
+  const year=reunioesViewDate.getFullYear(),month=reunioesViewDate.getMonth();
+  const dayReunioes=reunioes.filter(r=>{
+    if(!r.data)return false;const d=new Date(r.data);
+    return d.getFullYear()===year&&d.getMonth()===month&&d.getDate()===day;
+  });
+  renderReunioesList(dayReunioes,true);
+}
+
+function renderReunioesList(items,filtered){
+  const listEl=document.getElementById('reunioes-list');if(!listEl)return;
+  if(!items.length){listEl.innerHTML='<div class="empty-state">'+(filtered?'Nenhuma reunião neste dia.':'Nenhuma reunião neste mês.')+'</div>';return;}
+  const byWeek={};
+  items.forEach(r=>{
+    const d=new Date(r.data);const day=d.getDay();
+    const mon=new Date(d);mon.setDate(d.getDate()-(day===0?6:day-1));
+    const key=mon.toISOString().split('T')[0];
+    if(!byWeek[key])byWeek[key]=[];byWeek[key].push(r);
+  });
+  let html=filtered?`<div style="margin-bottom:12px"><button class="filter-btn active" style="font-size:11.5px" onclick="renderReunioesView()">← Ver mês completo</button></div>`:'';
+  Object.entries(byWeek).sort((a,b)=>b[0].localeCompare(a[0])).forEach(([key,rs])=>{
+    const mon=new Date(key+'T12:00:00');
+    const wLabel=mon.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'}).replace('.','');
+    html+=`<div class="semana-block"><div class="semana-label">Semana de ${wLabel}</div>`;
+    rs.forEach(r=>{
+      const cl=clients.find(c=>c.id===r.clienteId);
+      const ais=actionItems.filter(a=>a.reuniaoId===r.id);
+      const chips=[cl?cl.nome:null,r.participantes||null,ais.length>0?ais.length+' action items':null].filter(Boolean).map(c=>`<span class="chip">${c}</span>`).join('');
+      html+=`<div class="reuniao-card" onclick="openPopup('${r.id}')">
+        <div class="reuniao-icon" style="font-size:16px">📋</div>
+        <div class="reuniao-info">
+          <div class="reuniao-title">${r.titulo}${cl?` <span style="font-size:11px;color:var(--text-3);font-weight:400">· ${cl.nome}</span>`:''}</div>
+          <div class="reuniao-sub">${new Date(r.data).toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short'})}${r.duracao?' · '+r.duracao:''}</div>
+          <div class="chip-row">${chips}</div>
+        </div>
+        <span style="font-size:18px;color:var(--text-3);margin-left:8px">›</span>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  listEl.innerHTML=html;
+}
+
+function reunioesNavMonth(dir){
+  reunioesViewDate=new Date(reunioesViewDate.getFullYear(),reunioesViewDate.getMonth()+dir,1);
+  renderReunioesView();
+}
 
 // ── DOCUMENTOS ──
 function renderDocumentos(cl){

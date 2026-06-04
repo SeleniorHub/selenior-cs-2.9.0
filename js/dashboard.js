@@ -1,6 +1,6 @@
 // Dashboard Selenior — KPIs, gráficos, safra, sinais de alerta e action items.
 
-let phaseChart=null, respChart=null, actionsFilter='todos';
+let phaseChart=null, forecastChart=null, forecastData=[], actionsFilter='todos';
 
 function activeClients(){return clients.filter(c=>(c.status||'ativo')==='ativo');}
 
@@ -9,7 +9,7 @@ function renderDashboard(){
   renderDashHeader();
   renderKPIs();
   renderPhaseChart();
-  renderRespChart();
+  renderMRRForecast();
   renderCohortTable();
   renderAlerts();
 }
@@ -31,7 +31,7 @@ function renderKPIs(){
   document.getElementById('kpi-ativos-sub').textContent=churned.length?'+'+churned.length+' churned histórico':'nenhum churn registrado';
   document.getElementById('kpi-mrr-bruto').textContent=fmtMoney(mrrB);
   document.getElementById('kpi-mrr-liquido').textContent=fmtMoney(mrrL);
-  document.getElementById('kpi-mrr-liquido-sub').textContent=mrrB>mrrL?'-'+fmtMoney(mrrB-mrrL)+' em comissões':'';
+  document.getElementById('kpi-mrr-liquido-sub').textContent=mrrB>mrrL?'-'+fmtMoney(mrrB-mrrL)+' em deduções':'';
   document.getElementById('kpi-risco').textContent=riscoAlto;
   document.getElementById('kpi-risco-sub').textContent=ativos.length?pctRisco+'% da base ativa':'';
 }
@@ -60,26 +60,76 @@ function renderPhaseChart(){
   });
 }
 
-function renderRespChart(){
-  const labels=['Leo','João Pedro','Clientes'];
-  const colors=['#17395D','#6E5A51','#2D6A4F'];
-  const keys=['Leo','João Pedro','Cliente'];
-  const counts=keys.map(r=>actionItems.filter(a=>!a.concluido&&a.responsavel===r).length);
-  const ctx=document.getElementById('chart-resp');
-  if(!ctx) return;
-  if(respChart) respChart.destroy();
-  respChart=new Chart(ctx,{
-    type:'bar',
-    data:{labels,datasets:[{data:counts,backgroundColor:colors,borderRadius:6,maxBarThickness:32}]},
+function buildMRRForecast(){
+  const today=new Date();const act=activeClients();const result=[];
+  for(let i=0;i<7;i++){
+    const d=new Date(today.getFullYear(),today.getMonth()+i,1);
+    const label=d.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}).replace('.','');
+    let base=0,conservative=0;const baseList=[],conservList=[];
+    act.forEach(cl=>{
+      const{liquido}=calcMRR(cl);
+      base+=liquido;baseList.push(cl);
+      const mesNaData=cl.dataInicio?(()=>{
+        const ini=new Date(cl.dataInicio);
+        return((d.getFullYear()-ini.getFullYear())*12)+(d.getMonth()-ini.getMonth())+1;
+      })():1;
+      if(cl.churn==='alto'&&mesNaData>=12){/* removido do cenário conservador */}
+      else{conservative+=liquido;conservList.push(cl);}
+    });
+    result.push({label,base,conservative,baseList,conservList,date:d});
+  }
+  return result;
+}
+
+function renderMRRForecast(){
+  forecastData=buildMRRForecast();
+  const ctx=document.getElementById('chart-mrr-forecast');if(!ctx)return;
+  if(forecastChart)forecastChart.destroy();
+  forecastChart=new Chart(ctx,{
+    type:'line',
+    data:{
+      labels:forecastData.map(m=>m.label),
+      datasets:[
+        {label:'Base',data:forecastData.map(m=>m.base),borderColor:'#17395D',backgroundColor:'rgba(23,57,93,0.08)',fill:true,tension:0.35,pointBackgroundColor:'#17395D',pointBorderColor:'#FFFFFF',pointBorderWidth:2,pointRadius:5,pointHoverRadius:7,borderWidth:2.5},
+        {label:'Conservador',data:forecastData.map(m=>m.conservative),borderColor:'#C49417',backgroundColor:'rgba(196,148,23,0.06)',fill:true,tension:0.35,pointBackgroundColor:'#C49417',pointBorderColor:'#FFFFFF',pointBorderWidth:2,pointRadius:5,pointHoverRadius:7,borderWidth:2,borderDash:[6,4]}
+      ]
+    },
     options:{
-      responsive:true,maintainAspectRatio:false,indexAxis:'y',
-      plugins:{legend:{display:false},tooltip:{backgroundColor:'#1A232B',titleFont:{family:'DM Sans',size:12},bodyFont:{family:'DM Sans',size:12},padding:10,cornerRadius:8,displayColors:false}},
+      responsive:true,maintainAspectRatio:false,
+      onClick:(evt,elements)=>{if(!elements.length)return;openForecastPopup(elements[0].index,elements[0].datasetIndex===0?'base':'conservative');},
+      plugins:{
+        legend:{position:'top',labels:{font:{family:'DM Sans',size:11.5},color:'#5A6873',padding:16,usePointStyle:true,pointStyle:'circle',boxWidth:8,boxHeight:8}},
+        tooltip:{backgroundColor:'#1A232B',titleFont:{family:'DM Sans',size:12},bodyFont:{family:'DM Sans',size:12},padding:12,cornerRadius:8,callbacks:{label:(ctx)=>` ${ctx.dataset.label}: ${fmtMoney(ctx.raw)}/mês`}}
+      },
       scales:{
-        x:{grid:{color:'rgba(26,35,43,0.06)'},border:{display:false},ticks:{color:'#5A6873',font:{family:'DM Sans',size:11.5},precision:0}},
-        y:{grid:{display:false},border:{display:false},ticks:{color:'#1A232B',font:{family:'DM Sans',size:12,weight:'500'}}}
+        x:{grid:{color:'rgba(26,35,43,0.04)'},border:{display:false},ticks:{color:'#5A6873',font:{family:'DM Sans',size:11.5}}},
+        y:{grid:{color:'rgba(26,35,43,0.05)'},border:{display:false},ticks:{color:'#5A6873',font:{family:'DM Sans',size:11.5},callback:(v)=>fmtMoney(v)}}
       }
     }
   });
+}
+
+function openForecastPopup(monthIdx,scenario){
+  const month=forecastData[monthIdx];if(!month)return;
+  const cls=scenario==='base'?month.baseList:month.conservList;
+  const total=scenario==='base'?month.base:month.conservative;
+  const scenLabel=scenario==='base'?'Projeção base':'Projeção conservadora';
+  const items=cls.map(cl=>{
+    const idx=clients.indexOf(cl);const ci=colorFor(idx);const{liquido}=calcMRR(cl);
+    return'<div class="popup-client-row" onclick="closePopup();openClientView(\''+cl.id+'\')">'
+      +'<div class="avatar" style="background:'+ci.bg+';color:'+ci.txt+'">'+initials(cl.nome)+'</div>'
+      +'<div class="popup-client-info"><div class="popup-client-name">'+cl.nome+'</div>'
+      +'<div class="popup-client-meta">'+cl.nicho+' · '+fmtMoney(liquido)+'/mês</div></div>'
+      +churnBadge(cl.churn)+'</div>';
+  }).join('');
+  document.getElementById('popup-content').innerHTML=
+    '<div class="popup-header">'
+    +'<div><div class="popup-title">'+month.label+' — '+scenLabel+'</div>'
+    +'<div class="popup-sub">MRR projetado: '+fmtMoney(total)+'/mês · '+cls.length+' cliente'+(cls.length===1?'':'s')+'</div></div>'
+    +'<button class="popup-close" onclick="closePopup()">✕</button>'
+    +'</div>'
+    +'<div class="popup-body">'+(items||'<div class="empty-state">Sem clientes.</div>')+'</div>';
+  document.getElementById('popup-overlay').classList.add('show');
 }
 
 function renderCohortTable(){

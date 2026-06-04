@@ -59,9 +59,9 @@ async function deleteRow(sheetName, id){return apiPost_({action:'delete', sheetN
 // Sheets pode retornar datas como ISO datetime ("2024-01-15T00:00:00.000Z"); normaliza para YYYY-MM-DD.
 function normalizeSheetDate(v){const m=String(v||'').match(/^(\d{4}-\d{2}-\d{2})/);return m?m[1]:'';}
 
-// Mappers — Clientes: id|nome|nicho|fase|churn|dataInicio|mrr|indicador|comissaoVal|comissaoTipo|checkpoints|done|nota|depoimento|status|dataFim
-function clientToRow(cl){return[cl.id,cl.nome,cl.nicho,cl.fase,cl.churn,cl.dataInicio||'',cl.mrr||'0',cl.indicador||'',cl.comissaoVal||'',cl.comissaoTipo||'pct',(cl.checkpoints||[]).join('||'),(cl.done||[]).join('||'),cl.nota||'',cl.depoimento||'',cl.status||'ativo',cl.dataFim||''];}
-function rowToClient(r){return{id:String(r[0]),nome:r[1]||'',nicho:r[2]||'',fase:r[3]||'Onboarding',churn:r[4]||'baixo',dataInicio:normalizeSheetDate(r[5]),mrr:String(r[6]||'0'),indicador:r[7]||'',comissaoVal:r[8]||'',comissaoTipo:r[9]||'pct',checkpoints:r[10]?String(r[10]).split('||').filter(Boolean):[],done:r[11]?String(r[11]).split('||').filter(Boolean):[],nota:r[12]||'',depoimento:r[13]||'',status:r[14]||'ativo',dataFim:normalizeSheetDate(r[15])};}
+// Mappers — Clientes: id|nome|nicho|fase|churn|dataInicio|mrr|indicador|comissaoVal|comissaoTipo|checkpoints|done|nota|depoimento|status|dataFim|custo
+function clientToRow(cl){return[cl.id,cl.nome,cl.nicho,cl.fase,cl.churn,cl.dataInicio||'',cl.mrr||'0',cl.indicador||'',cl.comissaoVal||'',cl.comissaoTipo||'pct',(cl.checkpoints||[]).join('||'),(cl.done||[]).join('||'),cl.nota||'',cl.depoimento||'',cl.status||'ativo',cl.dataFim||'',cl.custo||'0'];}
+function rowToClient(r){return{id:String(r[0]),nome:r[1]||'',nicho:r[2]||'',fase:r[3]||'Onboarding',churn:r[4]||'baixo',dataInicio:normalizeSheetDate(r[5]),mrr:String(r[6]||'0'),indicador:r[7]||'',comissaoVal:r[8]||'',comissaoTipo:r[9]||'pct',checkpoints:r[10]?String(r[10]).split('||').filter(Boolean):[],done:r[11]?String(r[11]).split('||').filter(Boolean):[],nota:r[12]||'',depoimento:r[13]||'',status:r[14]||'ativo',dataFim:normalizeSheetDate(r[15]),custo:String(r[16]||'0')};}
 
 // Mappers — Reunioes: id|clienteId|data|titulo|duracao|participantes|resumo|pontos|actionItemIds
 function reuniaoToRow(r){return[r.id,r.clienteId,r.data,r.titulo,r.duracao||'',r.participantes||'',r.resumo||'',(r.pontos||[]).join('||'),r.actionItemIds||''];}

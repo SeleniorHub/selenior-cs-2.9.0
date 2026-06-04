@@ -11,6 +11,7 @@ function openClientModal(id=null){
   document.getElementById('mc-churn').value=cl?cl.churn:'baixo';
   document.getElementById('mc-data-inicio').value=cl?cl.dataInicio:'';
   document.getElementById('mc-mrr').value=cl?cl.mrr:'';
+  document.getElementById('mc-custo').value=cl?cl.custo||'':'';
   document.getElementById('mc-indicador').value=cl?cl.indicador:'';
   document.getElementById('mc-comissao-val').value=cl?cl.comissaoVal:'';
   document.getElementById('mc-comissao-tipo').value=cl?cl.comissaoTipo:'pct';
@@ -29,7 +30,7 @@ function toggleDataFim(status){document.getElementById('mc-data-fim-group').styl
 async function saveClient(){
   const nome=document.getElementById('mc-nome').value.trim();
   if(!nome){showToast('Preencha o nome.',true);return;}
-  const cl={id:editingClientId||String(Date.now()),nome,nicho:document.getElementById('mc-nicho').value.trim(),fase:document.getElementById('mc-fase').value,churn:document.getElementById('mc-churn').value,dataInicio:document.getElementById('mc-data-inicio').value,mrr:document.getElementById('mc-mrr').value.trim(),indicador:document.getElementById('mc-indicador').value.trim(),comissaoVal:document.getElementById('mc-comissao-val').value.trim(),comissaoTipo:document.getElementById('mc-comissao-tipo').value,checkpoints:document.getElementById('mc-checkpoints').value.split('\n').map(s=>s.trim()).filter(Boolean),done:document.getElementById('mc-done').value.split('\n').map(s=>s.trim()).filter(Boolean),nota:document.getElementById('mc-nota').value.trim(),depoimento:document.getElementById('mc-depo').value.trim(),status:document.getElementById('mc-status').value,dataFim:document.getElementById('mc-data-fim').value};
+  const cl={id:editingClientId||String(Date.now()),nome,nicho:document.getElementById('mc-nicho').value.trim(),fase:document.getElementById('mc-fase').value,churn:document.getElementById('mc-churn').value,dataInicio:document.getElementById('mc-data-inicio').value,mrr:document.getElementById('mc-mrr').value.trim(),custo:document.getElementById('mc-custo').value.trim(),indicador:document.getElementById('mc-indicador').value.trim(),comissaoVal:document.getElementById('mc-comissao-val').value.trim(),comissaoTipo:document.getElementById('mc-comissao-tipo').value,checkpoints:document.getElementById('mc-checkpoints').value.split('\n').map(s=>s.trim()).filter(Boolean),done:document.getElementById('mc-done').value.split('\n').map(s=>s.trim()).filter(Boolean),nota:document.getElementById('mc-nota').value.trim(),depoimento:document.getElementById('mc-depo').value.trim(),status:document.getElementById('mc-status').value,dataFim:document.getElementById('mc-data-fim').value};
   if(editingClientId){const i=clients.findIndex(c=>c.id===editingClientId);if(i>=0)clients[i]=cl;else clients.push(cl);}else clients.push(cl);
   closeClientModal();renderAll();if(currentClientId===editingClientId)renderClientView(editingClientId);
   setSyncStatus('syncing','Salvando...');
@@ -44,23 +45,36 @@ async function deleteClient(id){
 }
 
 // ── MODAL REUNIÃO ──
-function openReuniaoModal(clienteId){
+function openReuniaoModal(clienteId=null){
   editingReuniaoId=null;
   document.getElementById('mr-titulo').value='';document.getElementById('mr-data').value=new Date().toISOString().split('T')[0];
   document.getElementById('mr-duracao').value='';document.getElementById('mr-participantes').value='';
   document.getElementById('mr-resumo').value='';document.getElementById('mr-pontos').value='';
   document.getElementById('mr-title').textContent='Nova reunião';
-  document.getElementById('mr-title').dataset.clienteId=clienteId;
+  document.getElementById('mr-title').dataset.clienteId=clienteId||'';
+  const grp=document.getElementById('mr-cliente-group');
+  if(clienteId){
+    grp.style.display='none';
+  }else{
+    grp.style.display='block';
+    const sel=document.getElementById('mr-cliente-sel');
+    const ativos=clients.filter(c=>(c.status||'ativo')==='ativo').sort((a,b)=>a.nome.localeCompare(b.nome));
+    sel.innerHTML=ativos.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+  }
   document.getElementById('modal-reuniao').classList.add('open');
 }
+function openReuniaoModalGlobal(){openReuniaoModal(null);}
 function closeReuniaoModal(){document.getElementById('modal-reuniao').classList.remove('open');}
 
 async function saveReuniao(){
   const titulo=document.getElementById('mr-titulo').value.trim();if(!titulo){showToast('Preencha o título.',true);return;}
-  const clienteId=document.getElementById('mr-title').dataset.clienteId;
+  let clienteId=document.getElementById('mr-title').dataset.clienteId;
+  if(!clienteId) clienteId=document.getElementById('mr-cliente-sel').value;
+  if(!clienteId){showToast('Selecione um cliente.',true);return;}
   const r={id:editingReuniaoId||String(Date.now()),clienteId,data:document.getElementById('mr-data').value,titulo,duracao:document.getElementById('mr-duracao').value.trim(),participantes:document.getElementById('mr-participantes').value.trim(),resumo:document.getElementById('mr-resumo').value.trim(),pontos:document.getElementById('mr-pontos').value.split('\n').map(s=>s.trim()).filter(Boolean),actionItemIds:''};
   if(editingReuniaoId){const i=reunioes.findIndex(x=>x.id===editingReuniaoId);if(i>=0)reunioes[i]=r;else reunioes.push(r);}else reunioes.push(r);
-  closeReuniaoModal();renderClientView(clienteId);
+  closeReuniaoModal();
+  if(currentClientId) renderClientView(currentClientId);else renderAll();
   try{await upsertRow('Reunioes',reuniaoToRow(r));showToast('Reunião salva.');setTimeout(loadData,1500);}catch(e){showToast('Erro ao salvar',true);}
 }
 
