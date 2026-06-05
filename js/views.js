@@ -211,7 +211,9 @@ function renderOverview(cl){
   const doneNorm=(cl.done||[]).map(s=>s.trim().toLowerCase());
   const cpHtml=(cl.checkpoints||[]).map(cp=>{
     const done=doneNorm.includes(cp.trim().toLowerCase());
-    const clickAttr=mode==='admin'?`onclick="toggleCheckpoint('${cl.id}',${JSON.stringify(cp)})" style="cursor:pointer;user-select:none"`:'';
+    const safeId=cl.id.replace(/"/g,'&quot;');
+    const safeCp=cp.replace(/&/g,'&amp;').replace(/"/g,'&quot;');
+    const clickAttr=mode==='admin'?`data-cpid="${safeId}" data-cptext="${safeCp}" onclick="toggleCheckpoint(this.dataset.cpid,this.dataset.cptext)" style="cursor:pointer;user-select:none"`:'';
     const icon=done?`<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="width:9px;height:9px"><polyline points="2 6 5 9 10 3"/></svg>`:'';
     return`<div class="cp-item cp-item-toggle" ${clickAttr}><div class="cp-check ${done?'cp-check-done':''}">${icon}</div><span class="${done?'cp-done-lbl':''}">${cp}</span></div>`;
   }).join('');

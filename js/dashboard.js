@@ -129,8 +129,10 @@ function renderKPIs(){
   document.getElementById('kpi-mrr-liquido-sub').innerHTML=mrrB>mrrL?`<span style="color:var(--text-3)">-${fmtMoney(mrrB-mrrL)}</span> em deduções · ${pctLiquido}% do bruto`:'sem deduções';
   document.getElementById('kpi-risco').textContent=riscoAlto;
   document.getElementById('kpi-risco-sub').innerHTML=ativos.length?`<span style="${riscoAlto>0?'color:var(--red)':'color:var(--green)'}">${pctRisco}%</span> da base ativa`:'';
-  document.getElementById('kpi-risco').closest('.metric').classList.toggle('metric-danger',riscoAlto>0);
-  document.getElementById('kpi-mrr-liquido').closest('.metric').classList.add('metric-success');
+  const riscoCard=document.getElementById('kpi-risco')?.closest('.metric');
+  if(riscoCard) riscoCard.classList.toggle('metric-danger',riscoAlto>0);
+  const liquidoCard=document.getElementById('kpi-mrr-liquido')?.closest('.metric');
+  if(liquidoCard) liquidoCard.classList.add('metric-success');
 }
 
 const FASES=['Onboarding','Otimização','Escala','Consolidação','Aceleração'];
