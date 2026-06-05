@@ -155,24 +155,37 @@ function getChartTheme(){
 }
 
 function renderPhaseChart(){
-  const counts=FASES.map(f=>activeClients().filter(c=>c.fase===f).length);
+  const ativos=activeClients();
+  const counts=FASES.map(f=>ativos.filter(c=>c.fase===f).length);
+  const total=ativos.length;
   const ctx=document.getElementById('chart-phase');
   if(!ctx) return;
   if(phaseChart) phaseChart.destroy();
   const ct=getChartTheme();
+  const centerPlugin={
+    id:'phaseCenter',
+    afterDraw(chart){
+      const{ctx:c,chartArea:{left,top,width,height}}=chart;
+      c.save();c.textAlign='center';c.textBaseline='middle';
+      const cx=left+width/2,cy=top+height/2;
+      c.font='600 24px "Clash Display",sans-serif';
+      c.fillStyle=ct.text;c.fillText(total,cx,cy-9);
+      c.font='500 11px "Clash Display",sans-serif';
+      c.globalAlpha=0.45;c.fillText('ativos',cx,cy+12);
+      c.restore();
+    }
+  };
   phaseChart=new Chart(ctx,{
     type:'doughnut',
-    data:{
-      labels:FASES,
-      datasets:[{data:counts,backgroundColor:ct.phases,borderColor:ct.border,borderWidth:2}]
-    },
+    data:{labels:FASES,datasets:[{data:counts,backgroundColor:ct.phases,borderColor:ct.border,borderWidth:2}]},
     options:{
-      responsive:true,maintainAspectRatio:false,cutout:'62%',
+      responsive:true,maintainAspectRatio:false,cutout:'65%',
       plugins:{
-        legend:{position:'right',labels:{font:{family:'Clash Display',size:11.5},color:ct.text,padding:12,boxWidth:10,boxHeight:10,usePointStyle:true,pointStyle:'circle'}},
-        tooltip:{backgroundColor:ct.tooltip,titleFont:{family:'Clash Display',size:12},bodyFont:{family:'Clash Display',size:12},padding:10,cornerRadius:8,displayColors:true}
+        legend:{position:'right',labels:{font:{family:'Clash Display',size:11.5},color:ct.text,padding:14,boxWidth:8,boxHeight:8,usePointStyle:true,pointStyle:'circle',filter:(item)=>counts[item.index]>0}},
+        tooltip:{backgroundColor:ct.tooltip,titleFont:{family:'Clash Display',size:12},bodyFont:{family:'Clash Display',size:12},padding:10,cornerRadius:8,displayColors:true,callbacks:{label:(item)=>` ${item.label}: ${item.raw} cliente${item.raw===1?'':'s'}`}}
       }
-    }
+    },
+    plugins:[centerPlugin]
   });
 }
 
@@ -199,21 +212,39 @@ function buildMRRForecast(){
 
 function renderMRRForecast(){
   forecastData=buildMRRForecast();
-  const ctx=document.getElementById('chart-mrr-forecast');if(!ctx)return;
+  const canvas=document.getElementById('chart-mrr-forecast');if(!canvas)return;
   if(forecastChart)forecastChart.destroy();
   const ct=getChartTheme();
   const t=document.documentElement.getAttribute('data-theme')||'light';
   const l1c=t==='batman'?'#C8A84B':t==='dark'?'#60A5FA':'#17395D';
-  const l1b=t==='batman'?'rgba(200,168,75,0.08)':t==='dark'?'rgba(96,165,250,0.1)':'rgba(23,57,93,0.08)';
   const l2c=t==='batman'?'#8A6D35':t==='dark'?'#FBBF24':'#C49417';
-  const l2b=t==='batman'?'rgba(138,109,53,0.06)':t==='dark'?'rgba(251,191,36,0.08)':'rgba(196,148,23,0.06)';
-  forecastChart=new Chart(ctx,{
+  const gradPlugin={
+    id:'mrrGradients',
+    beforeRender(chart){
+      const{ctx:c,chartArea:ca}=chart;if(!ca)return;
+      const g1=c.createLinearGradient(0,ca.top,0,ca.bottom);
+      const g2=c.createLinearGradient(0,ca.top,0,ca.bottom);
+      if(t==='batman'){
+        g1.addColorStop(0,'rgba(200,168,75,0.22)');g1.addColorStop(1,'rgba(200,168,75,0)');
+        g2.addColorStop(0,'rgba(138,109,53,0.14)');g2.addColorStop(1,'rgba(138,109,53,0)');
+      }else if(t==='dark'){
+        g1.addColorStop(0,'rgba(96,165,250,0.22)');g1.addColorStop(1,'rgba(96,165,250,0)');
+        g2.addColorStop(0,'rgba(251,191,36,0.14)');g2.addColorStop(1,'rgba(251,191,36,0)');
+      }else{
+        g1.addColorStop(0,'rgba(23,57,93,0.18)');g1.addColorStop(1,'rgba(23,57,93,0)');
+        g2.addColorStop(0,'rgba(196,148,23,0.13)');g2.addColorStop(1,'rgba(196,148,23,0)');
+      }
+      chart.data.datasets[0].backgroundColor=g1;
+      chart.data.datasets[1].backgroundColor=g2;
+    }
+  };
+  forecastChart=new Chart(canvas,{
     type:'line',
     data:{
       labels:forecastData.map(m=>m.label),
       datasets:[
-        {label:'Base',data:forecastData.map(m=>m.base),borderColor:l1c,backgroundColor:l1b,fill:true,tension:0.35,pointBackgroundColor:l1c,pointBorderColor:ct.border,pointBorderWidth:2,pointRadius:5,pointHoverRadius:7,borderWidth:2.5},
-        {label:'Conservador',data:forecastData.map(m=>m.conservative),borderColor:l2c,backgroundColor:l2b,fill:true,tension:0.35,pointBackgroundColor:l2c,pointBorderColor:ct.border,pointBorderWidth:2,pointRadius:5,pointHoverRadius:7,borderWidth:2,borderDash:[6,4]}
+        {label:'Base',data:forecastData.map(m=>m.base),borderColor:l1c,backgroundColor:'transparent',fill:true,tension:0.35,pointBackgroundColor:l1c,pointBorderColor:ct.border,pointBorderWidth:2,pointRadius:4,pointHoverRadius:8,pointHoverBorderWidth:2.5,borderWidth:2.5},
+        {label:'Conservador',data:forecastData.map(m=>m.conservative),borderColor:l2c,backgroundColor:'transparent',fill:true,tension:0.35,pointBackgroundColor:l2c,pointBorderColor:ct.border,pointBorderWidth:2,pointRadius:4,pointHoverRadius:8,pointHoverBorderWidth:2.5,borderWidth:2,borderDash:[6,4]}
       ]
     },
     options:{
@@ -221,13 +252,23 @@ function renderMRRForecast(){
       onClick:(evt,elements)=>{if(!elements.length)return;openForecastPopup(elements[0].index,elements[0].datasetIndex===0?'base':'conservative');},
       plugins:{
         legend:{position:'top',labels:{font:{family:'Clash Display',size:11.5},color:ct.text,padding:16,usePointStyle:true,pointStyle:'circle',boxWidth:8,boxHeight:8}},
-        tooltip:{backgroundColor:ct.tooltip,titleFont:{family:'Clash Display',size:12},bodyFont:{family:'Clash Display',size:12},padding:12,cornerRadius:8,callbacks:{label:(ctx)=>` ${ctx.dataset.label}: ${fmtMoney(ctx.raw)}/mês`}}
+        tooltip:{
+          backgroundColor:ct.tooltip,
+          titleFont:{family:'Clash Display',size:12},
+          bodyFont:{family:'Clash Display',size:12},
+          padding:12,cornerRadius:8,
+          callbacks:{
+            label:(item)=>`  ${item.dataset.label}: ${fmtMoney(item.raw)}/mês`,
+            afterLabel:(item)=>{const d=item.datasetIndex===0?forecastData[item.dataIndex]?.baseList:forecastData[item.dataIndex]?.conservList;return d&&d.length?`  ${d.length} cliente${d.length===1?'':'s'}`:''}
+          }
+        }
       },
       scales:{
         x:{grid:{color:ct.grid},border:{display:false},ticks:{color:ct.text,font:{family:'Clash Display',size:11.5}}},
         y:{grid:{color:ct.grid},border:{display:false},ticks:{color:ct.text,font:{family:'Clash Display',size:11.5},callback:(v)=>fmtMoney(v)}}
       }
-    }
+    },
+    plugins:[gradPlugin]
   });
 }
 

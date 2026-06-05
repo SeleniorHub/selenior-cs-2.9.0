@@ -84,6 +84,24 @@ async function toggleCheckpoint(clientId,cpText){
 }
 
 // ── LIST VIEW ──
+function showSkeleton(){
+  if(clients.length>0) return;
+  const skel=(h)=>`<div class="skel ${h}"></div>`;
+  // KPI values
+  ['kpi-ativos','kpi-mrr-bruto','kpi-mrr-liquido','kpi-risco'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=skel('skel-kpi');});
+  ['kpi-ativos-sub','kpi-mrr-liquido-sub','kpi-risco-sub'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=skel('skel-sub');});
+  // Briefing card
+  const bc=document.getElementById('briefing-card');
+  if(bc) bc.innerHTML=`${skel('skel-briefing-hdr')}<div class="briefing-cols"><div class="briefing-col">${skel('skel-line')}${skel('skel-text-block')}</div><div class="briefing-col">${skel('skel-line')}${skel('skel-text-block')}</div><div class="briefing-col" style="border-right:none">${skel('skel-line')}${skel('skel-text-block')}</div></div>`;
+  // Charts
+  document.querySelectorAll('.chart-canvas').forEach(el=>{el.innerHTML=skel('skel-chart');});
+  // Alerts
+  const al=document.getElementById('alerts-list');if(al)al.innerHTML=Array(3).fill(skel('skel-alert-row')).join('');
+  // Client list
+  const cl=document.getElementById('client-list');
+  if(cl) cl.innerHTML=Array(5).fill(0).map(()=>`<div class="skel-client-row"><div class="skel skel-avatar"></div><div class="skel-row-info"><div class="skel skel-line"></div><div class="skel skel-line-sm"></div><div class="skel skel-progress"></div></div><div class="skel-row-right"><div class="skel skel-badge"></div><div class="skel skel-badge"></div></div></div>`).join('');
+}
+
 function setFilter(f,btn){activeFilter=f;document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderList();}
 function renderAll(){
   renderSummary();renderList();

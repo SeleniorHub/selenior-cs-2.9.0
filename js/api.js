@@ -30,6 +30,7 @@ function readFileAsBase64(file){
 
 async function loadData(){
   if(!authHash){handleUnauthorized();return;}
+  if(typeof showSkeleton==='function') showSkeleton();
   setSyncStatus('syncing','Sincronizando...');
   try{
     const res=await fetch(SCRIPT_URL+'?auth='+authHash);
