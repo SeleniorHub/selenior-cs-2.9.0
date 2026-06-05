@@ -446,7 +446,8 @@ function renderActionRow(a){
   const cl=clients.find(c=>c.id===a.clienteId);
   const clienteNome=cl?cl.nome:'—';
   const resp=a.responsavel==='Cliente'?clienteNome:a.responsavel;
-  let dataLabel='',dataCls='';
+  let dataLabel='',dataCls='',urgencyCls='';
+  if(!a.concluido&&a.dataPrazo){const _dp=new Date(a.dataPrazo);const _td=new Date();_td.setHours(0,0,0,0);_dp.setHours(0,0,0,0);if(_dp<_td)urgencyCls=' actions-row-overdue';else if(_dp.getTime()===_td.getTime())urgencyCls=' actions-row-today';}
   if(a.dataPrazo){
     const dp=new Date(a.dataPrazo);const today=new Date();today.setHours(0,0,0,0);dp.setHours(0,0,0,0);
     const diff=Math.round((dp-today)/(1000*60*60*24));
@@ -462,7 +463,7 @@ function renderActionRow(a){
   const ci=colorFor(idx);
   const avatarMini=cl?`<div class="avatar-mini" style="background:${ci.bg};color:${ci.txt}" title="${cl.nome}">${initials(cl.nome)}</div>`:'';
   const editBtn=mode==='admin'?`<button onclick="event.stopPropagation();openAIModalEdit('${a.id}')" style="background:transparent;border:none;cursor:pointer;color:var(--text-3);font-size:12px;padding:2px 6px;flex-shrink:0" title="Editar">✎</button>`:'';
-  return `<div class="actions-row" onclick="openClientView('${a.clienteId}')">
+  return `<div class="actions-row${urgencyCls}" onclick="openClientView('${a.clienteId}')">
     ${check}
     <div class="actions-info">
       <div class="actions-text ${a.concluido?'done':''}" style="white-space:pre-wrap">${a.texto}</div>

@@ -6,7 +6,7 @@ async function sha256(s){
 }
 
 function setSyncStatus(state,label){document.getElementById('sync-dot').className='sync-dot '+state;document.getElementById('sync-label').textContent=label;}
-function showToast(msg,isErr=false){const t=document.getElementById('toast');t.textContent=msg;t.className='toast'+(isErr?' err':'')+' show';setTimeout(()=>{t.className='toast'+(isErr?' err':'');},2500);}
+function showToast(msg,isErr=false){const t=document.getElementById('toast');const icon=isErr?'<span style="font-size:15px;line-height:1;flex-shrink:0">✕</span>':'<span style="font-size:15px;line-height:1;flex-shrink:0">✓</span>';t.innerHTML=icon+'<span>'+msg+'</span>';t.className='toast'+(isErr?' err':'')+' show';setTimeout(()=>{t.className='toast'+(isErr?' err':'');},2500);}
 
 function applyData(d){
   clients=(d.Clientes||[]).filter(r=>r[0]&&r[1]).map(rowToClient);

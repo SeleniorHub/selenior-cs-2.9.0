@@ -115,6 +115,8 @@ function setTheme(t){
 }
 
 function applyTheme(t,save){
+  document.documentElement.classList.add('theme-transitioning');
+  setTimeout(()=>document.documentElement.classList.remove('theme-transitioning'),300);
   if(save) localStorage.setItem('selenior_theme',t);
   if(t==='light') document.documentElement.removeAttribute('data-theme');
   else document.documentElement.setAttribute('data-theme',t);

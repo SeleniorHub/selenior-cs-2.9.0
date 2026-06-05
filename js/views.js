@@ -109,6 +109,7 @@ function showMainView(view,btn){
   document.getElementById('topbar-context').textContent=VIEW_TITLES[view]||'';
   const isAdmin=mode==='admin';
   document.getElementById('add-btn-top').style.display=(isAdmin&&view==='clientes')?'inline-flex':'none';
+  window.scrollTo({top:0,behavior:'smooth'});
   if(view==='dashboard'&&typeof renderDashboard==='function') renderDashboard();
   if(view==='actions'&&typeof renderActionsPage==='function') renderActionsPage();
   if(view==='reunioes') renderReunioesView();
@@ -127,7 +128,10 @@ function renderSummary(){
 
 function renderList(){
   const q=(document.getElementById('search-box').value||'').toLowerCase();
+  const showInactive=document.getElementById('show-inactive')?.checked||false;
   const filtered=clients.filter(c=>{
+    const status=c.status||'ativo';
+    if(!showInactive&&status!=='ativo')return false;
     if(activeFilter==='churn'&&c.churn!=='alto')return false;
     if(activeFilter!=='todos'&&activeFilter!=='churn'&&c.fase!==activeFilter)return false;
     if(q&&!c.nome.toLowerCase().includes(q)&&!c.nicho.toLowerCase().includes(q))return false;
@@ -173,6 +177,7 @@ function openClientView(id){
   document.getElementById('topbar-context').textContent=cl?cl.nome:'Cliente';
   document.getElementById('add-btn-top').style.display='none';
   showClientTab('overview',document.querySelector('.ctab'));
+  window.scrollTo({top:0,behavior:'smooth'});
   renderClientView(id);
 }
 
@@ -188,6 +193,7 @@ function showClientTab(name,btn){
   btn.classList.add('active');
   ['overview','reunioes','metas','actions','documentos'].forEach(t=>document.getElementById('ctab-'+t).style.display='none');
   document.getElementById('ctab-'+name).style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 function renderClientView(id){
