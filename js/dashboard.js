@@ -6,6 +6,10 @@ function activeClients(){return clients.filter(c=>(c.status||'ativo')==='ativo')
 
 function renderDashboard(){
   if(!document.getElementById('view-dashboard')) return;
+  // Limpa skeleton dos charts antes de renderizar (canvas foi escondido, não destruído)
+  document.querySelectorAll('.chart-canvas .skel-chart-ov').forEach(s=>s.remove());
+  document.querySelectorAll('.chart-canvas canvas').forEach(cv=>cv.style.display='');
+  document.querySelectorAll('.chart-canvas .chart-empty').forEach(s=>s.remove());
   renderDashHeader();
   renderBriefing();
   renderKPIs();
@@ -231,7 +235,14 @@ function renderMRREvolution(){
   }
   const months=Object.keys(monthMap).sort();
   if(!months.length){
-    const wrap=canvas.closest('.chart-canvas');if(wrap)wrap.innerHTML='<div class="empty-state" style="height:200px;display:flex;align-items:center;justify-content:center"><div class="empty-title">Adicione registros em Histórico MRR para ver a evolução</div></div>';
+    canvas.style.display='none';
+    const wrap=canvas.closest('.chart-canvas');
+    if(wrap&&!wrap.querySelector('.chart-empty')){
+      const d=document.createElement('div');d.className='chart-empty';
+      d.style.cssText='height:200px;display:flex;align-items:center;justify-content:center;padding:20px';
+      d.innerHTML='<div class="empty-title" style="text-align:center">Adicione registros em Histórico MRR para ver a evolução</div>';
+      wrap.appendChild(d);
+    }
     return;
   }
 

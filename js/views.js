@@ -95,8 +95,13 @@ function showSkeleton(){
   // Briefing card
   const bc=document.getElementById('briefing-card');
   if(bc) bc.innerHTML=`${skel('skel-briefing-hdr')}<div class="briefing-cols"><div class="briefing-col">${skel('skel-line')}${skel('skel-text-block')}</div><div class="briefing-col">${skel('skel-line')}${skel('skel-text-block')}</div><div class="briefing-col" style="border-right:none">${skel('skel-line')}${skel('skel-text-block')}</div></div>`;
-  // Charts
-  document.querySelectorAll('.chart-canvas').forEach(el=>{el.innerHTML=skel('skel-chart');});
+  // Charts: esconde o canvas e adiciona overlay — não destrói o elemento canvas
+  document.querySelectorAll('.chart-canvas').forEach(el=>{
+    const cv=el.querySelector('canvas');if(cv)cv.style.display='none';
+    if(!el.querySelector('.skel-chart-ov')){
+      const s=document.createElement('div');s.className='skel skel-chart skel-chart-ov';el.appendChild(s);
+    }
+  });
   // Alerts
   const al=document.getElementById('alerts-list');if(al)al.innerHTML=Array(3).fill(skel('skel-alert-row')).join('');
   // Client list
