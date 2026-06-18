@@ -4,6 +4,7 @@ function initials(n){return n.split(' ').slice(0,2).map(w=>w[0]).join('').toUppe
 function colorFor(i){return AVATAR_COLORS[i%AVATAR_COLORS.length];}
 function parseMoney(s){return parseInt((String(s)||'0').replace(/\D/g,''))||0;}
 function fmtMoney(n){if(n>=1000000)return'R$'+(n/1000000).toFixed(1)+'M';if(n>=1000)return'R$'+Math.round(n/1000)+'k';return'R$'+n;}
+function privacyVal(n){return privacyMode?'••••':fmtMoney(n);}
 function calcMRR(cl){const bruto=parseMoney(cl.mrr);let comissao=0;if(cl.comissaoVal){const v=parseFloat(String(cl.comissaoVal).replace(',','.'))||0;comissao=cl.comissaoTipo==='pct'?Math.round(bruto*v/100):Math.round(v);}const custo=parseMoney(cl.custo||'0');return{bruto,comissao,custo,deducao:comissao+custo,liquido:bruto-comissao-custo};}
 function churnBadge(c){if(c==='alto')return'<span class="badge churn-high">Risco alto</span>';if(c==='médio')return'<span class="badge churn-med">Risco médio</span>';return'<span class="badge churn-low">Risco baixo</span>';}
 function progressPct(cl){if(!cl.checkpoints||!cl.checkpoints.length)return 0;return Math.round((cl.done.length/cl.checkpoints.length)*100);}
@@ -146,9 +147,9 @@ function renderSummary(){
   let mrrB=0,mrrL=0;ativos.forEach(cl=>{const{bruto,liquido}=calcMRR(cl);mrrB+=bruto;mrrL+=liquido;});
   document.getElementById('summary-grid').innerHTML=`
     <div class="metric"><div class="metric-label">Clientes ativos</div><div class="metric-value">${total}</div><div class="metric-sub">contratos vigentes</div></div>
-    <div class="metric"><div class="metric-label">MRR bruto</div><div class="metric-value">${fmtMoney(mrrB)}</div><div class="metric-sub">receita total mensal</div></div>
-    <div class="metric"><div class="metric-label">Deduções</div><div class="metric-value" style="color:var(--red)">-${fmtMoney(mrrB-mrrL)}</div><div class="metric-sub">comissões + custos</div></div>
-    <div class="metric"><div class="metric-label">MRR líquido</div><div class="metric-value" style="color:var(--green)">${fmtMoney(mrrL)}</div><div class="metric-sub">${alto>0?alto+' em risco alto':'tudo ok'}</div></div>`;
+    <div class="metric"><div class="metric-label">MRR bruto</div><div class="metric-value">${privacyVal(mrrB)}</div><div class="metric-sub">receita total mensal</div></div>
+    <div class="metric"><div class="metric-label">Deduções</div><div class="metric-value" style="color:var(--red)">-${privacyVal(mrrB-mrrL)}</div><div class="metric-sub">comissões + custos</div></div>
+    <div class="metric"><div class="metric-label">MRR líquido</div><div class="metric-value" style="color:var(--green)">${privacyVal(mrrL)}</div><div class="metric-sub">${alto>0?alto+' em risco alto':'tudo ok'}</div></div>`;
 }
 
 function renderList(){
@@ -181,7 +182,7 @@ function renderList(){
         <div class="progress-wrap"><div class="progress-fill" style="width:${pct}%"></div></div>
       </div>
       <div class="row-right">
-        <span class="badge mrr-badge">${fmtMoney(liquido)}/mês</span>
+        <span class="badge mrr-badge">${privacyVal(liquido)}/mês</span>
         <span class="badge phase-badge">${cl.fase}</span>
         ${churnBadge(cl.churn)}
         ${hl?`<span class="health-badge ${hl.cls}">${hs}</span>`:''}
@@ -232,7 +233,7 @@ function renderClientView(id){
   const mesAtualCl=calcMesAtual(cl.dataInicio);document.getElementById('cv-meta').textContent=cl.nicho+(cl.dataInicio?' · '+fmtTempo(cl.dataInicio)+' de contrato':'');
   const{bruto,liquido}=calcMRR(cl);
   const hs=calcHealthScore(cl);const hl=healthLabel(hs);
-  document.getElementById('cv-badges').innerHTML=`<div class="client-header-stats"><div class="client-stat"><div class="client-stat-val">${fmtMoney(liquido)}</div><div class="client-stat-lbl">líquido/mês</div></div><div class="client-stat"><div class="client-stat-val">Mês ${mesAtualCl}/12</div><div class="client-stat-lbl">no contrato</div></div></div><div class="client-header-badges"><span class="badge phase-badge">${cl.fase}</span>${churnBadge(cl.churn)}<span class="health-badge ${hl.cls} health-badge-lg">${hl.label} · ${hs}</span></div>`;
+  document.getElementById('cv-badges').innerHTML=`<div class="client-header-stats"><div class="client-stat"><div class="client-stat-val">${privacyVal(liquido)}</div><div class="client-stat-lbl">líquido/mês</div></div><div class="client-stat"><div class="client-stat-val">Mês ${mesAtualCl}/12</div><div class="client-stat-lbl">no contrato</div></div></div><div class="client-header-badges"><span class="badge phase-badge">${cl.fase}</span>${churnBadge(cl.churn)}<span class="health-badge ${hl.cls} health-badge-lg">${hl.label} · ${hs}</span></div>`;
   const acts=document.getElementById('cv-actions');
   acts.innerHTML=mode==='admin'?`<button class="topbar-btn" onclick="openClientModal('${cl.id}')">Editar</button><button class="topbar-btn" style="color:var(--red)" onclick="deleteClient('${cl.id}')">Remover</button>`:'';
   renderOverview(cl);renderReunioes(cl);renderMetas(cl);renderActionItems(cl);renderDocumentos(cl);
@@ -259,10 +260,10 @@ function renderOverview(cl){
       <div class="mini-card"><div class="mini-title">Checkpoints (${cl.done.length}/${cl.checkpoints.length})</div>${cpHtml||'<span style="font-size:13px;color:var(--text-3)">Nenhum checkpoint.</span>'}</div>
       <div class="mini-card"><div class="mini-title">Financeiro</div>
         <div class="kpi-row">
-          <div class="kpi"><div class="kpi-val">${fmtMoney(bruto)}</div><div class="kpi-lbl">MRR bruto</div></div>
-          ${comissao>0?`<div class="kpi"><div class="kpi-val red">-${fmtMoney(comissao)}</div><div class="kpi-lbl">Comissão</div></div>`:''}
-          ${custo>0?`<div class="kpi"><div class="kpi-val red">-${fmtMoney(custo)}</div><div class="kpi-lbl">Custo</div></div>`:''}
-          <div class="kpi"><div class="kpi-val green">${fmtMoney(liquido)}</div><div class="kpi-lbl">Líquido</div></div>
+          <div class="kpi"><div class="kpi-val">${privacyVal(bruto)}</div><div class="kpi-lbl">MRR bruto</div></div>
+          ${comissao>0?`<div class="kpi"><div class="kpi-val red">-${privacyVal(comissao)}</div><div class="kpi-lbl">Comissão</div></div>`:''}
+          ${custo>0?`<div class="kpi"><div class="kpi-val red">-${privacyVal(custo)}</div><div class="kpi-lbl">Custo</div></div>`:''}
+          <div class="kpi"><div class="kpi-val green">${privacyVal(liquido)}</div><div class="kpi-lbl">Líquido</div></div>
         </div>
         ${comissaoInfo}
         <div style="margin-top:14px"><div class="mini-title">Progresso no contrato</div>${mesStrip(calcMesAtual(cl.dataInicio))}${cl.dataInicio?'<div style="font-size:11px;color:var(--text-3);margin-top:6px">desde '+new Date(cl.dataInicio).toLocaleDateString('pt-BR')+' · '+fmtTempo(cl.dataInicio)+'</div>':''}</div>
@@ -521,7 +522,7 @@ function renderMRRHistory(cl){
   const trend=data.length>1?data[data.length-1]-data[data.length-2]:0;
   const tableRows=clHist.map(h=>`<div class="hist-mrr-row">
     <span class="hist-mrr-mes">${h.mes}</span>
-    <span class="hist-mrr-val">${fmtMoney(h.mrr)}/mês</span>
+    <span class="hist-mrr-val">${privacyVal(h.mrr)}/mês</span>
     ${mode==='admin'?`<button class="hist-mrr-edit" onclick="openHistMRRModal('${cl.id}','${h.id}')" title="Editar">✎</button><button class="hist-mrr-rm" onclick="deleteHistMRR('${h.id}')" title="Remover">✕</button>`:''}
   </div>`).join('');
   container.innerHTML=`
@@ -530,7 +531,7 @@ function renderMRRHistory(cl){
       <div class="mini-card">
         <div class="mini-title">Evolução de MRR</div>
         <div style="position:relative;height:200px"><canvas id="chart-mrr-client"></canvas></div>
-        ${data.length>1?`<div style="margin-top:10px;font-size:12px;color:var(--text-3)">Variação: <strong style="color:${trend>=0?'var(--green)':'var(--red)'}">${trend>=0?'+':''}${fmtMoney(trend)}</strong> no último mês · pico ${fmtMoney(max)}</div>`:''}
+        ${data.length>1?`<div style="margin-top:10px;font-size:12px;color:var(--text-3)">Variação: <strong style="color:${trend>=0?'var(--green)':'var(--red)'}">${trend>=0?'+':''}${privacyVal(trend)}</strong> no último mês · pico ${privacyVal(max)}</div>`:''}
       </div>
       <div class="mini-card">
         <div class="mini-title">Registros mensais</div>
@@ -556,11 +557,11 @@ function renderMRRHistory(cl){
       responsive:true,maintainAspectRatio:false,
       plugins:{
         legend:{display:false},
-        tooltip:{backgroundColor:ct.tooltip,titleFont:{family:'Clash Display',size:12},bodyFont:{family:'Clash Display',size:12},padding:10,cornerRadius:8,callbacks:{label:(item)=>`  MRR: ${fmtMoney(item.raw)}/mês`}}
+        tooltip:{backgroundColor:ct.tooltip,titleFont:{family:'Clash Display',size:12},bodyFont:{family:'Clash Display',size:12},padding:10,cornerRadius:8,callbacks:{label:(item)=>privacyMode?'  ••••':`  MRR: ${fmtMoney(item.raw)}/mês`}}
       },
       scales:{
         x:{grid:{color:ct.grid},border:{display:false},ticks:{color:ct.text,font:{family:'Clash Display',size:11}}},
-        y:{grid:{color:ct.grid},border:{display:false},ticks:{color:ct.text,font:{family:'Clash Display',size:11},callback:(v)=>fmtMoney(v)}}
+        y:{grid:{color:ct.grid},border:{display:false},ticks:{color:ct.text,font:{family:'Clash Display',size:11},callback:(v)=>privacyMode?'':fmtMoney(v)}}
       }
     },
     plugins:[gradPlugin]

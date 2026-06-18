@@ -470,6 +470,19 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 [data-theme="batman"] body::after{content:"🦇";position:fixed;bottom:28px;right:36px;font-size:110px;opacity:0.025;pointer-events:none;z-index:0;line-height:1;}
 .batman-brand{display:none;font-size:22px;line-height:1;align-items:center;}
 
+/* PRIVACY TOGGLE */
+.privacy-toggle{display:flex;align-items:center;gap:7px;width:100%;padding:7px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;font-size:12px;font-weight:500;font-family:var(--font);cursor:pointer;color:var(--text-2);transition:all 0.12s;margin-bottom:4px;}
+.privacy-toggle:hover{background:var(--surface2);color:var(--text);border-color:var(--border-strong);}
+.privacy-toggle.active{color:var(--text);border-color:var(--primary);background:var(--primary-soft);}
+.privacy-pill{margin-left:auto;width:26px;height:14px;border-radius:7px;background:var(--surface3);position:relative;transition:background 0.2s;flex-shrink:0;}
+.privacy-pill::after{content:'';position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:var(--text-3);transition:transform 0.2s,background 0.2s;}
+.privacy-toggle.active .privacy-pill{background:var(--primary);}
+.privacy-toggle.active .privacy-pill::after{transform:translateX(12px);background:#fff;}
+[data-theme="dark"] .privacy-toggle.active{border-color:rgba(96,165,250,0.4);background:rgba(23,57,93,0.3);}
+[data-theme="dark"] .privacy-toggle.active .privacy-pill{background:#60A5FA;}
+[data-theme="batman"] .privacy-toggle.active{border-color:rgba(200,168,75,0.35);background:rgba(200,168,75,0.08);}
+[data-theme="batman"] .privacy-toggle.active .privacy-pill{background:#C8A84B;}
+
 /* THEME SWITCHER */
 .theme-switcher-wrap{position:relative;margin-bottom:4px;}
 .theme-trigger{display:flex;align-items:center;gap:7px;width:100%;padding:7px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;font-size:12px;font-weight:500;font-family:var(--font);cursor:pointer;color:var(--text-2);transition:all 0.12s;}

@@ -46,14 +46,17 @@ function enterApp(initialData){
   document.getElementById('add-btn-top').style.display='none';
   document.getElementById('add-row-btn').style.display=isAdmin?'flex':'none';
   document.getElementById('topbar-context').textContent='Panorama';
+  initPrivacyMode();
   if(initialData){applyData(initialData);setSyncStatus('ok','Atualizado às '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));}
   else loadData();
   if(mode==='viewer')setInterval(loadData,60000);
 }
 
 function logout(){
-  mode=null;authHash=null;
+  mode=null;authHash=null;privacyMode=false;
   localStorage.removeItem(SESSION_KEY);
+  const toggle=document.getElementById('privacy-toggle');
+  if(toggle){toggle.style.display='none';toggle.classList.remove('active');}
   const app=document.getElementById('app');
   app.style.display='none';
   app.classList.remove('open');
@@ -145,6 +148,47 @@ function applyTheme(t,save){
     if(tagEl&&tagEl.dataset.orig) tagEl.textContent=tagEl.dataset.orig;
     if(vEl) vEl.textContent='v'+VERSION;
   }
+}
+
+// ── PRIVACY MODE ──
+function initPrivacyMode(){
+  const isViewer=mode==='viewer';
+  privacyMode=isViewer&&localStorage.getItem('selenior_privacy')==='true';
+  const toggle=document.getElementById('privacy-toggle');
+  if(toggle) toggle.style.display=isViewer?'flex':'none';
+  updatePrivacyUI();
+}
+
+function togglePrivacyMode(){
+  if(mode!=='viewer') return;
+  privacyMode=!privacyMode;
+  localStorage.setItem('selenior_privacy',privacyMode?'true':'false');
+  updatePrivacyUI();
+  reRenderCurrentView();
+}
+
+function updatePrivacyUI(){
+  const toggle=document.getElementById('privacy-toggle');
+  if(!toggle) return;
+  toggle.classList.toggle('active',privacyMode);
+  const icon=document.getElementById('privacy-icon');
+  if(!icon) return;
+  if(privacyMode){
+    icon.innerHTML='<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>';
+  }else{
+    icon.innerHTML='<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+  }
+}
+
+function reRenderCurrentView(){
+  const clientView=document.getElementById('view-client');
+  if(clientView&&clientView.style.display!=='none'){
+    if(currentClientId&&typeof renderClientView==='function') renderClientView(currentClientId);
+    return;
+  }
+  const view=document.querySelector('.side-nav-btn.active')?.dataset.view;
+  if(view==='dashboard'&&typeof renderDashboard==='function') renderDashboard();
+  else if(view==='clientes'&&typeof renderSummary==='function'){renderSummary();renderList();}
 }
 
 function activateBatmanMode(){

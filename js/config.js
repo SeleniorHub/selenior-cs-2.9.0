@@ -6,4 +6,5 @@ const SESSION_KEY='selenior_session';
 const SESSION_TTL=8*60*60*1000;
 
 let mode=null, authHash=null, clients=[], reunioes=[], metas=[], objetivos=[], actionItems=[], documentos=[], historicoMRR=[];
+let privacyMode=false;
 let activeFilter='todos', currentClientId=null, editingClientId=null, editingReuniaoId=null, editingMetaId=null, editingAIId=null, editingObjId=null, editingHistMRRId=null, editingHistMRRClienteId=null;

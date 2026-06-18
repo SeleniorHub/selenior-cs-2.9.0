@@ -133,10 +133,10 @@ function renderKPIs(){
   const pctRisco=ativos.length?Math.round(riscoAlto/ativos.length*100):0;
   document.getElementById('kpi-ativos').textContent=ativos.length;
   document.getElementById('kpi-ativos-sub').innerHTML=churned.length?`<span style="color:var(--red)">↓ ${churned.length} churned</span> histórico`:'nenhum churn registrado';
-  document.getElementById('kpi-mrr-bruto').textContent=fmtMoney(mrrB);
-  document.getElementById('kpi-mrr-liquido').textContent=fmtMoney(mrrL);
+  document.getElementById('kpi-mrr-bruto').textContent=privacyVal(mrrB);
+  document.getElementById('kpi-mrr-liquido').textContent=privacyVal(mrrL);
   const pctLiquido=mrrB>0?Math.round(mrrL/mrrB*100):100;
-  document.getElementById('kpi-mrr-liquido-sub').innerHTML=mrrB>mrrL?`<span style="color:var(--text-3)">-${fmtMoney(mrrB-mrrL)}</span> em deduções · ${pctLiquido}% do bruto`:'sem deduções';
+  document.getElementById('kpi-mrr-liquido-sub').innerHTML=mrrB>mrrL?`<span style="color:var(--text-3)">-${privacyVal(mrrB-mrrL)}</span> em deduções · ${privacyMode?'••':pctLiquido+'%'} do bruto`:'sem deduções';
   document.getElementById('kpi-risco').textContent=riscoAlto;
   document.getElementById('kpi-risco-sub').innerHTML=ativos.length?`<span style="${riscoAlto>0?'color:var(--red)':'color:var(--green)'}">${pctRisco}%</span> da base ativa`:'';
   const riscoCard=document.getElementById('kpi-risco')?.closest('.metric');
@@ -297,12 +297,12 @@ function renderMRREvolution(){
         legend:{position:'top',labels:{font:{family:'Clash Display',size:11.5},color:ct.text,padding:16,usePointStyle:true,pointStyle:'circle',boxWidth:8,boxHeight:8}},
         tooltip:{
           backgroundColor:ct.tooltip,titleFont:{family:'Clash Display',size:12},bodyFont:{family:'Clash Display',size:12},padding:12,cornerRadius:8,
-          callbacks:{label:(item)=>`  ${item.dataset.label}: ${fmtMoney(Math.abs(item.raw||0))}/mês`}
+          callbacks:{label:(item)=>privacyMode?'  ••••':`  ${item.dataset.label}: ${fmtMoney(Math.abs(item.raw||0))}/mês`}
         }
       },
       scales:{
         x:{grid:{color:ct.grid},border:{display:false},ticks:{color:ct.text,font:{family:'Clash Display',size:11.5}}},
-        y:{grid:{color:ct.grid},border:{display:false},ticks:{color:ct.text,font:{family:'Clash Display',size:11.5},callback:(v)=>fmtMoney(Math.abs(v))}}
+        y:{grid:{color:ct.grid},border:{display:false},ticks:{color:ct.text,font:{family:'Clash Display',size:11.5},callback:(v)=>privacyMode?'':fmtMoney(Math.abs(v))}}
       }
     },
     plugins:[gradPlugin]
@@ -319,10 +319,10 @@ function renderFinancialSection(){
   const kpisEl=document.getElementById('fin-kpis');
   if(kpisEl){
     kpisEl.innerHTML=`
-      <div class="fin-kpi"><div class="fin-kpi-val">${fmtMoney(totalBruto)}</div><div class="fin-kpi-lbl">Receita bruta</div></div>
-      <div class="fin-kpi"><div class="fin-kpi-val" style="color:var(--red)">-${fmtMoney(totalDed)}</div><div class="fin-kpi-lbl">Custos + comissões</div></div>
-      <div class="fin-kpi"><div class="fin-kpi-val" style="color:var(--green)">${fmtMoney(margem)}</div><div class="fin-kpi-lbl">Margem bruta</div></div>
-      <div class="fin-kpi"><div class="fin-kpi-val" style="color:${pct>=70?'var(--green)':pct>=50?'var(--amber)':'var(--red)'}">${pct}%</div><div class="fin-kpi-lbl">% margem</div></div>`;
+      <div class="fin-kpi"><div class="fin-kpi-val">${privacyVal(totalBruto)}</div><div class="fin-kpi-lbl">Receita bruta</div></div>
+      <div class="fin-kpi"><div class="fin-kpi-val" style="color:var(--red)">-${privacyVal(totalDed)}</div><div class="fin-kpi-lbl">Custos + comissões</div></div>
+      <div class="fin-kpi"><div class="fin-kpi-val" style="color:var(--green)">${privacyVal(margem)}</div><div class="fin-kpi-lbl">Margem bruta</div></div>
+      <div class="fin-kpi"><div class="fin-kpi-val" style="color:${pct>=70?'var(--green)':pct>=50?'var(--amber)':'var(--red)'}">${privacyMode?'••':pct+'%'}</div><div class="fin-kpi-lbl">% margem</div></div>`;
   }
   const canvas=document.getElementById('chart-financial');
   if(!canvas||!ativos.length)return;
@@ -348,11 +348,11 @@ function renderFinancialSection(){
       onClick:(evt,els)=>{if(!els.length)return;openClientView(sorted[els[0].index].id);},
       plugins:{
         legend:{position:'top',labels:{font:{family:'Clash Display',size:11.5},color:ct.text,padding:14,usePointStyle:true,pointStyle:'circle',boxWidth:8,boxHeight:8}},
-        tooltip:{backgroundColor:ct.tooltip,titleFont:{family:'Clash Display',size:12},bodyFont:{family:'Clash Display',size:12},padding:10,cornerRadius:8,callbacks:{label:(item)=>`  ${item.dataset.label}: ${fmtMoney(item.raw)}`}}
+        tooltip:{backgroundColor:ct.tooltip,titleFont:{family:'Clash Display',size:12},bodyFont:{family:'Clash Display',size:12},padding:10,cornerRadius:8,callbacks:{label:(item)=>privacyMode?'  ••••':`  ${item.dataset.label}: ${fmtMoney(item.raw)}`}}
       },
       scales:{
         x:{grid:{color:ct.grid},border:{display:false},ticks:{color:ct.text,font:{family:'Clash Display',size:11.5}},stacked:true},
-        y:{grid:{color:ct.grid},border:{display:false},ticks:{color:ct.text,font:{family:'Clash Display',size:11.5},callback:(v)=>fmtMoney(v)},stacked:true}
+        y:{grid:{color:ct.grid},border:{display:false},ticks:{color:ct.text,font:{family:'Clash Display',size:11.5},callback:(v)=>privacyMode?'':fmtMoney(v)},stacked:true}
       }
     }
   });
@@ -378,7 +378,7 @@ function renderChurnSection(){
   if(kpisEl){
     kpisEl.innerHTML=`
       <div class="fin-kpi"><div class="fin-kpi-val">${churned.length}</div><div class="fin-kpi-lbl">Total churned</div></div>
-      <div class="fin-kpi"><div class="fin-kpi-val" style="color:var(--red)">-${fmtMoney(totalMRRLost)}</div><div class="fin-kpi-lbl">MRR perdido</div></div>
+      <div class="fin-kpi"><div class="fin-kpi-val" style="color:var(--red)">-${privacyVal(totalMRRLost)}</div><div class="fin-kpi-lbl">MRR perdido</div></div>
       <div class="fin-kpi"><div class="fin-kpi-val">${avgDur?avgDur+'m':'—'}</div><div class="fin-kpi-lbl">Duração média</div></div>`;
   }
   if(!canvas)return;
@@ -404,7 +404,7 @@ function renderChurnSection(){
         legend:{display:false},
         tooltip:{
           backgroundColor:ct.tooltip,titleFont:{family:'Clash Display',size:12},bodyFont:{family:'Clash Display',size:12},padding:10,cornerRadius:8,
-          callbacks:{label:(item)=>`  ${item.raw} cliente${item.raw===1?'':'s'} · ${fmtMoney(byMonth[months[item.dataIndex]].mrr)} perdidos`}
+          callbacks:{label:(item)=>privacyMode?`  ${item.raw} cliente${item.raw===1?'':'s'} · ••••`:`  ${item.raw} cliente${item.raw===1?'':'s'} · ${fmtMoney(byMonth[months[item.dataIndex]].mrr)} perdidos`}
         }
       },
       scales:{
@@ -480,13 +480,13 @@ function renderCohortTable(){
     html+='<td class="cohort-count cohort-cell'+(total>0?' has-val':'')+'"'+(total>0?' onclick="openSafraPopup(\''+k+'\',\'__all__\')"':'')+'>'+total+'</td>';
     counts.forEach((c,i)=>{const f=FASES[i];html+='<td class="cohort-cell'+(c>0?' has-val':'')+'"'+(c>0?' onclick="openSafraPopup(\''+k+'\',\''+f+'\')"':'')+'>'+(c||'')+'</td>';});
     html+='<td class="cohort-churn'+(churn>0?' has-val':'')+'"'+(churn>0?' onclick="openSafraPopup(\''+k+'\',\'__churn__\')"':'')+'>'+(churn||'')+'</td>';
-    html+='<td class="cohort-mrr">'+(mrr?fmtMoney(mrr):'—')+'</td>';
+    html+='<td class="cohort-mrr">'+(mrr?privacyVal(mrr):'—')+'</td>';
     html+='</tr>';
   });
   html+='<tr class="cohort-totals"><td>Total</td><td>'+totals.total+'</td>';
   totals.fases.forEach(c=>html+='<td>'+(c||'')+'</td>');
   html+='<td class="cohort-churn-col">'+(totals.churn||'')+'</td>';
-  html+='<td>'+(totals.mrr?fmtMoney(totals.mrr):'—')+'</td></tr>';
+  html+='<td>'+(totals.mrr?privacyVal(totals.mrr):'—')+'</td></tr>';
   html+='</tbody></table>';
   wrap.innerHTML=html;
 }
@@ -567,7 +567,7 @@ function openSafraPopup(monthKey,category){
       detail=cl.dataFim?'Saiu em '+new Date(cl.dataFim).toLocaleDateString('pt-BR'):'Sem data de saída';
     }else{
       const liquido=calcMRR(cl).liquido;
-      detail=fmtMoney(liquido)+'/mês · '+cl.fase+(status==='pausado'?' · Pausado':'');
+      detail=privacyVal(liquido)+'/mês · '+cl.fase+(status==='pausado'?' · Pausado':'');
     }
     return '<div class="popup-client-row" onclick="closePopup();openClientView(\''+cl.id+'\')">'
       +'<div class="avatar" style="background:'+ci.bg+';color:'+ci.txt+'">'+initials(cl.nome)+'</div>'
