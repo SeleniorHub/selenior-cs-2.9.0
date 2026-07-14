@@ -28,6 +28,7 @@ export const crmAccounts = pgTable("crm_accounts", {
   apiKey: text("api_key").notNull(),
   webhookSlug: text("webhook_slug").notNull().unique(),
   webhookSecret: text("webhook_secret").notNull(),
+  n8nWebhookUrl: text("n8n_webhook_url"),
   ativo: boolean("ativo").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

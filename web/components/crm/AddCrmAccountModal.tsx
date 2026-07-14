@@ -20,6 +20,13 @@ export function AddCrmAccountModal({
   const [clientId, setClientId] = useState(clients[0]?.id ?? "");
   const [apiKey, setApiKey] = useState("");
   const [saving, setSaving] = useState(false);
+  const [created, setCreated] = useState<{ webhookUrl: string | null; error: string | null } | null>(null);
+
+  function handleClose() {
+    setCreated(null);
+    setApiKey("");
+    onClose();
+  }
 
   async function handleSave() {
     if (!clientId) {
@@ -33,12 +40,7 @@ export function AddCrmAccountModal({
     setSaving(true);
     try {
       const result = await addCrmAccount({ clientId, apiKey });
-      if (result.n8nError) {
-        toast(`Conta criada, mas o workflow do n8n falhou: ${result.n8nError}`, true);
-      } else {
-        toast("Conta CRM criada e workflow do n8n ativado.");
-      }
-      onClose();
+      setCreated({ webhookUrl: result.n8nWebhookUrl, error: result.n8nError });
       router.refresh();
     } catch {
       toast("Erro ao criar conta CRM.", true);
@@ -47,8 +49,32 @@ export function AddCrmAccountModal({
     }
   }
 
+  if (created) {
+    return (
+      <Modal open={open} onClose={handleClose}>
+        <h3>Conta CRM criada</h3>
+        {created.error ? (
+          <div className="form-group">
+            <p>A conta foi salva, mas o workflow do n8n não pôde ser criado automaticamente:</p>
+            <p style={{ color: "var(--red)", fontSize: 13 }}>{created.error}</p>
+          </div>
+        ) : (
+          <div className="form-group">
+            <label>Cole esta URL no painel de Webhooks do CRM deste cliente</label>
+            <input readOnly value={created.webhookUrl ?? ""} onFocus={(e) => e.target.select()} />
+          </div>
+        )}
+        <div className="modal-actions">
+          <button className="btn-save" onClick={handleClose}>
+            Concluído
+          </button>
+        </div>
+      </Modal>
+    );
+  }
+
   return (
-    <Modal open={open} onClose={onClose}>
+    <Modal open={open} onClose={handleClose}>
       <h3>Nova conta CRM</h3>
       {clients.length === 0 ? (
         <div className="empty-state">
@@ -78,7 +104,7 @@ export function AddCrmAccountModal({
         </>
       )}
       <div className="modal-actions">
-        <button className="btn-cancel" onClick={onClose}>
+        <button className="btn-cancel" onClick={handleClose}>
           Cancelar
         </button>
         <button className="btn-save" disabled={saving || clients.length === 0} onClick={handleSave}>

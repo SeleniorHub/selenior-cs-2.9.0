@@ -61,6 +61,7 @@ export async function addCrmAccount(input: AddCrmAccountInput) {
     .returning({ id: schema.crmAccounts.id, webhookSlug: schema.crmAccounts.webhookSlug });
 
   let n8nWorkflowId: string | null = null;
+  let n8nWebhookUrl: string | null = null;
   let n8nError: string | null = null;
   try {
     const workflow = await createN8nCrmWebhookWorkflow({
@@ -69,12 +70,17 @@ export async function addCrmAccount(input: AddCrmAccountInput) {
       webhookSecret,
     });
     n8nWorkflowId = workflow.id;
+    n8nWebhookUrl = workflow.publicWebhookUrl;
+    await db
+      .update(schema.crmAccounts)
+      .set({ n8nWebhookUrl })
+      .where(eq(schema.crmAccounts.id, account.id));
   } catch (e) {
     n8nError = e instanceof Error ? e.message : String(e);
   }
 
   revalidatePath("/crm");
-  return { accountId: account.id, webhookSlug: account.webhookSlug, n8nWorkflowId, n8nError };
+  return { accountId: account.id, webhookSlug: account.webhookSlug, n8nWorkflowId, n8nWebhookUrl, n8nError };
 }
 
 export async function setCrmAccountAtivo(id: string, ativo: boolean) {

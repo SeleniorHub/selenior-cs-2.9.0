@@ -12,7 +12,9 @@ export type CreateCrmWebhookWorkflowInput = {
   webhookSecret: string;
 };
 
-export async function createN8nCrmWebhookWorkflow(input: CreateCrmWebhookWorkflowInput): Promise<{ id: string }> {
+export async function createN8nCrmWebhookWorkflow(
+  input: CreateCrmWebhookWorkflowInput
+): Promise<{ id: string; publicWebhookUrl: string }> {
   const base = process.env.N8N_BASE_URL;
   const apiKey = process.env.N8N_API_KEY;
   const appBaseUrl = process.env.APP_BASE_URL;
@@ -84,5 +86,5 @@ export async function createN8nCrmWebhookWorkflow(input: CreateCrmWebhookWorkflo
   });
   if (!activateRes.ok) throw new Error(`n8n activate workflow -> ${activateRes.status}: ${await activateRes.text()}`);
 
-  return { id: created.id as string };
+  return { id: created.id as string, publicWebhookUrl: `${base.replace(/\/$/, "")}/webhook/${webhookPath}` };
 }

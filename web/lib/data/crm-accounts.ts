@@ -13,6 +13,7 @@ export type CrmAccountWithClient = {
   client_nome: string | null;
   nome: string;
   webhook_slug: string;
+  n8n_webhook_url: string | null;
   ativo: boolean;
   created_at: string;
 };
@@ -25,6 +26,7 @@ export async function listCrmAccountsWithClients(): Promise<CrmAccountWithClient
       clientNome: schema.clients.nome,
       nome: schema.crmAccounts.nome,
       webhookSlug: schema.crmAccounts.webhookSlug,
+      n8nWebhookUrl: schema.crmAccounts.n8nWebhookUrl,
       ativo: schema.crmAccounts.ativo,
       createdAt: schema.crmAccounts.createdAt,
     })
@@ -38,6 +40,7 @@ export async function listCrmAccountsWithClients(): Promise<CrmAccountWithClient
     client_nome: r.clientNome,
     nome: r.nome,
     webhook_slug: r.webhookSlug,
+    n8n_webhook_url: r.n8nWebhookUrl,
     ativo: r.ativo,
     created_at: r.createdAt.toISOString(),
   }));

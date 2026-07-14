@@ -103,7 +103,7 @@ export function CrmPageClient({
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>{a.nome}</div>
                   <div style={{ fontSize: 12, color: "var(--text-2)", fontFamily: "var(--mono)" }}>
-                    /api/webhooks/n8n/{a.webhook_slug}
+                    {a.n8n_webhook_url ?? `/api/webhooks/n8n/${a.webhook_slug}`}
                   </div>
                 </div>
                 <button
