@@ -1,7 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { fmtMoney } from "@/lib/format";
 import type { CrmDealRow, CrmPipelineRow, CrmPipelineStepRow } from "@/lib/types";
+
+function pickDefaultPipeline(pipelines: CrmPipelineRow[]) {
+  const salesMatch = pipelines.find((p) => /venda/i.test(p.nome) && !/p[oó]s/i.test(p.nome));
+  return salesMatch ?? pipelines[0];
+}
 
 export function CrmFunnelSection({
   pipelines,
@@ -12,6 +18,8 @@ export function CrmFunnelSection({
   steps: CrmPipelineStepRow[];
   deals: CrmDealRow[];
 }) {
+  const [pipelineId, setPipelineId] = useState<string | null>(() => pickDefaultPipeline(pipelines)?.id ?? null);
+
   if (!pipelines.length) {
     return (
       <div className="chart-card">
@@ -26,10 +34,8 @@ export function CrmFunnelSection({
     if (!d.pipeline_id) return;
     dealCountByPipeline.set(d.pipeline_id, (dealCountByPipeline.get(d.pipeline_id) ?? 0) + 1);
   });
-  const mainPipeline =
-    [...pipelines].sort((a, b) => (dealCountByPipeline.get(b.id) ?? 0) - (dealCountByPipeline.get(a.id) ?? 0))[0] ??
-    pipelines[0];
 
+  const mainPipeline = pipelines.find((p) => p.id === pipelineId) ?? pipelines[0];
   const pipelineSteps = steps.filter((s) => s.pipeline_id === mainPipeline.id).sort((a, b) => a.ordem - b.ordem);
   const dealsInPipeline = deals.filter((d) => d.pipeline_id === mainPipeline.id);
   const total = dealsInPipeline.length;
@@ -38,7 +44,28 @@ export function CrmFunnelSection({
 
   return (
     <div className="chart-card">
-      <div className="chart-title">Funil de vendas — {mainPipeline.nome}</div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div className="chart-title">Funil de vendas (CRM)</div>
+        <select
+          value={mainPipeline.id}
+          onChange={(e) => setPipelineId(e.target.value)}
+          style={{
+            fontSize: 12,
+            padding: "5px 10px",
+            borderRadius: "var(--radius-pill)",
+            border: "1px solid var(--border)",
+            background: "var(--surface)",
+            color: "var(--text-2)",
+            fontFamily: "var(--font)",
+          }}
+        >
+          {pipelines.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nome} ({dealCountByPipeline.get(p.id) ?? 0})
+            </option>
+          ))}
+        </select>
+      </div>
       <div className="chart-sub">
         {total} negócio{total === 1 ? "" : "s"} em aberto · {fmtMoney(totalValor)} em pipeline · sincronizado via CRM Selenior Hub
       </div>
