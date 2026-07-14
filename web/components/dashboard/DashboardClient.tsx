@@ -5,6 +5,7 @@ import { Alerts } from "@/components/dashboard/Alerts";
 import { Briefing } from "@/components/dashboard/Briefing";
 import { ChurnSection } from "@/components/dashboard/ChurnSection";
 import { CohortTable } from "@/components/dashboard/CohortTable";
+import { CrmFunnelSection } from "@/components/dashboard/CrmFunnelSection";
 import { EngagementHeatmap } from "@/components/dashboard/EngagementHeatmap";
 import { FinancialSection } from "@/components/dashboard/FinancialSection";
 import { Kpis } from "@/components/dashboard/Kpis";
@@ -14,7 +15,7 @@ import { PhaseChart } from "@/components/charts/PhaseChart";
 import { MeetingModal } from "@/components/clients/MeetingModal";
 import { MeetingPopup } from "@/components/clients/MeetingPopup";
 import { activeClients } from "@/lib/format";
-import type { ActionItem, Client, Meeting, MrrHistoryEntry } from "@/lib/types";
+import type { ActionItem, Client, CrmDealRow, CrmPipelineRow, CrmPipelineStepRow, Meeting, MrrHistoryEntry } from "@/lib/types";
 
 const FASES = ["Onboarding", "Otimização", "Escala", "Consolidação", "Aceleração"];
 
@@ -24,12 +25,14 @@ export function DashboardClient({
   actionItems,
   mrrHistory,
   isAdmin,
+  crmFunnel,
 }: {
   clients: Client[];
   meetings: Meeting[];
   actionItems: ActionItem[];
   mrrHistory: MrrHistoryEntry[];
   isAdmin: boolean;
+  crmFunnel: { pipelines: CrmPipelineRow[]; steps: CrmPipelineStepRow[]; deals: CrmDealRow[] };
 }) {
   const [safra, setSafra] = useState<{ month: string; category: string } | null>(null);
   const [popupMeeting, setPopupMeeting] = useState<Meeting | null>(null);
@@ -49,6 +52,7 @@ export function DashboardClient({
       </div>
       <Briefing clients={clients} meetings={meetings} actionItems={actionItems} onOpenMeeting={setPopupMeeting} />
       <Kpis clients={clients} />
+      <CrmFunnelSection pipelines={crmFunnel.pipelines} steps={crmFunnel.steps} deals={crmFunnel.deals} />
       <div className="charts-grid">
         <div className="chart-card">
           <div className="chart-title">Distribuição por fase</div>

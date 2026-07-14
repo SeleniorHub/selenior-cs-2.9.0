@@ -3,6 +3,9 @@ import type {
   ActionItem,
   Client,
   ClientDocument,
+  CrmDealRow,
+  CrmPipelineRow,
+  CrmPipelineStepRow,
   Goal,
   Meeting,
   MrrHistoryEntry,
@@ -101,6 +104,23 @@ export async function getDashboardData() {
     getMrrHistory(),
   ]);
   return { clients, meetings, actionItems, mrrHistory };
+}
+
+export async function getCrmFunnel() {
+  const supabase = await createClient();
+  const [{ data: pipelines, error: e1 }, { data: steps, error: e2 }, { data: deals, error: e3 }] = await Promise.all([
+    supabase.from("crm_pipelines").select("*").order("ordem"),
+    supabase.from("crm_pipeline_steps").select("*").order("ordem"),
+    supabase.from("crm_deals").select("id, crm_deal_id, nome, pipeline_id, step_id, valor, updated_at_crm, synced_at"),
+  ]);
+  if (e1) throw e1;
+  if (e2) throw e2;
+  if (e3) throw e3;
+  return {
+    pipelines: (pipelines ?? []) as CrmPipelineRow[],
+    steps: (steps ?? []) as CrmPipelineStepRow[],
+    deals: (deals ?? []) as CrmDealRow[],
+  };
 }
 
 export async function getCurrentProfile() {

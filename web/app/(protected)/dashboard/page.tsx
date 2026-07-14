@@ -1,10 +1,11 @@
 import { DashboardClient } from "@/components/dashboard/DashboardClient";
-import { getDashboardData, getCurrentProfile } from "@/lib/data/queries";
+import { getCrmFunnel, getDashboardData, getCurrentProfile } from "@/lib/data/queries";
 
 export default async function DashboardPage() {
-  const [{ clients, meetings, actionItems, mrrHistory }, profile] = await Promise.all([
+  const [{ clients, meetings, actionItems, mrrHistory }, profile, crmFunnel] = await Promise.all([
     getDashboardData(),
     getCurrentProfile(),
+    getCrmFunnel(),
   ]);
 
   return (
@@ -14,6 +15,7 @@ export default async function DashboardPage() {
       actionItems={actionItems}
       mrrHistory={mrrHistory}
       isAdmin={profile?.role === "admin"}
+      crmFunnel={crmFunnel}
     />
   );
 }

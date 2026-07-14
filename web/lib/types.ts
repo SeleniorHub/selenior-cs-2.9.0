@@ -77,3 +77,31 @@ export type MrrHistoryEntry = {
 };
 
 export type Role = "admin" | "viewer";
+
+export type CrmPipelineRow = {
+  id: string;
+  crm_pipeline_id: string;
+  nome: string;
+  ordem: number;
+};
+
+export type CrmPipelineStepRow = {
+  id: string;
+  crm_step_id: string;
+  pipeline_id: string;
+  nome: string;
+  ordem: number;
+  is_won: boolean;
+  is_lost: boolean;
+};
+
+export type CrmDealRow = {
+  id: string;
+  crm_deal_id: string;
+  nome: string | null;
+  pipeline_id: string | null;
+  step_id: string | null;
+  valor: string | null;
+  updated_at_crm: string | null;
+  synced_at: string;
+};
