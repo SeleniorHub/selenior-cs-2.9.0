@@ -78,8 +78,18 @@ export type MrrHistoryEntry = {
 
 export type Role = "admin" | "viewer";
 
+export type CrmAccountRow = {
+  id: string;
+  client_id: string | null;
+  nome: string;
+  webhook_slug: string;
+  ativo: boolean;
+  created_at: string;
+};
+
 export type CrmPipelineRow = {
   id: string;
+  account_id: string;
   crm_pipeline_id: string;
   nome: string;
   ordem: number;
@@ -87,6 +97,7 @@ export type CrmPipelineRow = {
 
 export type CrmPipelineStepRow = {
   id: string;
+  account_id: string;
   crm_step_id: string;
   pipeline_id: string;
   nome: string;
@@ -97,6 +108,7 @@ export type CrmPipelineStepRow = {
 
 export type CrmDealRow = {
   id: string;
+  account_id: string;
   crm_deal_id: string;
   nome: string | null;
   pipeline_id: string | null;

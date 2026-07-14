@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
@@ -15,33 +15,50 @@ export async function POST(request: NextRequest) {
 
   const data = todayBrasilia();
 
-  const rows = await db
-    .select({
-      pipelineId: schema.crmDeals.pipelineId,
-      stepId: schema.crmDeals.stepId,
-      count: sql<number>`count(*)::int`,
-      valorTotal: sql<string>`coalesce(sum(${schema.crmDeals.valor}), 0)::text`,
-    })
-    .from(schema.crmDeals)
-    .where(sql`${schema.crmDeals.pipelineId} is not null and ${schema.crmDeals.stepId} is not null`)
-    .groupBy(schema.crmDeals.pipelineId, schema.crmDeals.stepId);
+  const accounts = await db
+    .select({ id: schema.crmAccounts.id })
+    .from(schema.crmAccounts)
+    .where(eq(schema.crmAccounts.ativo, true));
 
-  for (const row of rows) {
-    if (!row.pipelineId || !row.stepId) continue;
-    await db
-      .insert(schema.dailyFunnelSnapshot)
-      .values({
-        data,
-        pipelineId: row.pipelineId,
-        stepId: row.stepId,
-        count: row.count,
-        valorTotal: row.valorTotal,
+  let totalRows = 0;
+  for (const account of accounts) {
+    const rows = await db
+      .select({
+        pipelineId: schema.crmDeals.pipelineId,
+        stepId: schema.crmDeals.stepId,
+        count: sql<number>`count(*)::int`,
+        valorTotal: sql<string>`coalesce(sum(${schema.crmDeals.valor}), 0)::text`,
       })
-      .onConflictDoUpdate({
-        target: [schema.dailyFunnelSnapshot.data, schema.dailyFunnelSnapshot.pipelineId, schema.dailyFunnelSnapshot.stepId],
-        set: { count: row.count, valorTotal: row.valorTotal },
-      });
+      .from(schema.crmDeals)
+      .where(
+        sql`${schema.crmDeals.accountId} = ${account.id} and ${schema.crmDeals.pipelineId} is not null and ${schema.crmDeals.stepId} is not null`
+      )
+      .groupBy(schema.crmDeals.pipelineId, schema.crmDeals.stepId);
+
+    for (const row of rows) {
+      if (!row.pipelineId || !row.stepId) continue;
+      await db
+        .insert(schema.dailyFunnelSnapshot)
+        .values({
+          accountId: account.id,
+          data,
+          pipelineId: row.pipelineId,
+          stepId: row.stepId,
+          count: row.count,
+          valorTotal: row.valorTotal,
+        })
+        .onConflictDoUpdate({
+          target: [
+            schema.dailyFunnelSnapshot.accountId,
+            schema.dailyFunnelSnapshot.data,
+            schema.dailyFunnelSnapshot.pipelineId,
+            schema.dailyFunnelSnapshot.stepId,
+          ],
+          set: { count: row.count, valorTotal: row.valorTotal },
+        });
+      totalRows++;
+    }
   }
 
-  return NextResponse.json({ ok: true, data, rows: rows.length });
+  return NextResponse.json({ ok: true, data, accounts: accounts.length, rows: totalRows });
 }

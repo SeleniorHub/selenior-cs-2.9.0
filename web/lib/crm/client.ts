@@ -20,11 +20,16 @@ export class CrmApiError extends Error {
 
 export async function crmFetch<T = unknown>(
   path: string,
-  opts: { method?: string; query?: Record<string, string | number | undefined>; body?: unknown } = {}
+  opts: {
+    apiKey: string;
+    method?: string;
+    query?: Record<string, string | number | undefined>;
+    body?: unknown;
+  }
 ): Promise<T> {
   const baseUrl = process.env.CRM_API_BASE_URL;
-  const apiKey = process.env.CRM_API_KEY;
-  if (!baseUrl || !apiKey) throw new Error("CRM_API_BASE_URL / CRM_API_KEY não configuradas");
+  const apiKey = opts.apiKey;
+  if (!baseUrl || !apiKey) throw new Error("CRM_API_BASE_URL não configurada ou apiKey ausente");
 
   const url = new URL(baseUrl.replace(/\/$/, "") + path);
   if (opts.query) {

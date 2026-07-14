@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
 import type { CrmCommercialOrder, CrmWebhookEvent, CrmWebhookPayload } from "@/lib/crm/types";
@@ -11,18 +11,18 @@ const COMMERCIAL_ORDER_EVENTS: CrmWebhookEvent[] = [
   "COMMERCIAL_ORDER_STEP_CHANGED",
 ];
 
-function idempotencyKeyFor(event: string, data: unknown): string {
-  const raw = JSON.stringify({ event, data });
+function idempotencyKeyFor(accountId: string, event: string, data: unknown): string {
+  const raw = JSON.stringify({ accountId, event, data });
   return createHash("sha256").update(raw).digest("hex");
 }
 
-async function handleCommercialOrderEvent(event: CrmWebhookEvent, order: CrmCommercialOrder) {
+async function handleCommercialOrderEvent(accountId: string, order: CrmCommercialOrder) {
   const crmDealId = String(order.id);
 
   const [existing] = await db
     .select({ id: schema.crmDeals.id, stepId: schema.crmDeals.stepId })
     .from(schema.crmDeals)
-    .where(eq(schema.crmDeals.crmDealId, crmDealId));
+    .where(and(eq(schema.crmDeals.accountId, accountId), eq(schema.crmDeals.crmDealId, crmDealId)));
 
   let stepId: string | null = null;
   let pipelineId: string | null = null;
@@ -30,7 +30,12 @@ async function handleCommercialOrderEvent(event: CrmWebhookEvent, order: CrmComm
     const [step] = await db
       .select({ id: schema.crmPipelineSteps.id, pipelineId: schema.crmPipelineSteps.pipelineId })
       .from(schema.crmPipelineSteps)
-      .where(eq(schema.crmPipelineSteps.crmStepId, String(order.commercialSalesStepId)));
+      .where(
+        and(
+          eq(schema.crmPipelineSteps.accountId, accountId),
+          eq(schema.crmPipelineSteps.crmStepId, String(order.commercialSalesStepId))
+        )
+      );
     if (step) {
       stepId = step.id;
       pipelineId = step.pipelineId;
@@ -40,6 +45,7 @@ async function handleCommercialOrderEvent(event: CrmWebhookEvent, order: CrmComm
   const [row] = await db
     .insert(schema.crmDeals)
     .values({
+      accountId,
       crmDealId,
       crmContactId: order.contactId ? String(order.contactId) : null,
       nome: order.title || order.contact?.name || null,
@@ -51,7 +57,7 @@ async function handleCommercialOrderEvent(event: CrmWebhookEvent, order: CrmComm
       updatedAtCrm: order.updatedAt ? new Date(order.updatedAt) : null,
     })
     .onConflictDoUpdate({
-      target: schema.crmDeals.crmDealId,
+      target: [schema.crmDeals.accountId, schema.crmDeals.crmDealId],
       set: {
         crmContactId: order.contactId ? String(order.contactId) : null,
         nome: order.title || order.contact?.name || null,
@@ -77,9 +83,20 @@ async function handleCommercialOrderEvent(event: CrmWebhookEvent, order: CrmComm
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+
+  const [account] = await db
+    .select({ id: schema.crmAccounts.id, webhookSecret: schema.crmAccounts.webhookSecret, ativo: schema.crmAccounts.ativo })
+    .from(schema.crmAccounts)
+    .where(eq(schema.crmAccounts.webhookSlug, slug));
+
+  if (!account || !account.ativo) {
+    return NextResponse.json({ ok: false, error: "conta não encontrada" }, { status: 404 });
+  }
+
   const secret = request.headers.get("x-webhook-secret");
-  if (!secret || secret !== process.env.N8N_WEBHOOK_SECRET) {
+  if (!secret || secret !== account.webhookSecret) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
@@ -94,7 +111,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "campo 'event' ausente" }, { status: 400 });
   }
 
-  const idempotencyKey = idempotencyKeyFor(payload.event, payload.data);
+  const idempotencyKey = idempotencyKeyFor(account.id, payload.event, payload.data);
   const [alreadyProcessed] = await db
     .select({ id: schema.webhookEventsLog.id })
     .from(schema.webhookEventsLog)
@@ -107,7 +124,7 @@ export async function POST(request: NextRequest) {
   let error: string | null = null;
   try {
     if (COMMERCIAL_ORDER_EVENTS.includes(payload.event)) {
-      await handleCommercialOrderEvent(payload.event, payload.data as CrmCommercialOrder);
+      await handleCommercialOrderEvent(account.id, payload.data as CrmCommercialOrder);
     }
     // CONTACT_*, TICKET_*, MEETING_CREATED, TAG_APPLIED: registrados no log
     // abaixo mas sem ação própria ainda — o funil hoje só depende de negócios.
@@ -116,6 +133,7 @@ export async function POST(request: NextRequest) {
   }
 
   await db.insert(schema.webhookEventsLog).values({
+    accountId: account.id,
     source: "n8n",
     eventType: payload.event,
     idempotencyKey,

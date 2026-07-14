@@ -54,6 +54,17 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
+  {
+    href: "/crm",
+    label: "CRM",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 5h18" />
+        <path d="M5 5l2 12a2 2 0 0 0 2 1.8h6a2 2 0 0 0 2-1.8l2-12" />
+        <path d="M9 10h6" />
+      </svg>
+    ),
+  },
 ];
 
 const THEME_ICONS: Record<Theme, string> = { light: "☀️", dark: "🌙", batman: "🦇" };
@@ -64,6 +75,7 @@ const TOPBAR_TITLES: Record<string, string> = {
   "/actions": "Action items",
   "/clientes": "Clientes",
   "/reunioes": "Reuniões",
+  "/crm": "CRM",
 };
 
 export default function AppShell({

@@ -106,12 +106,15 @@ export async function getDashboardData() {
   return { clients, meetings, actionItems, mrrHistory };
 }
 
-export async function getCrmFunnel() {
+export async function getCrmFunnel(accountId: string) {
   const supabase = await createClient();
   const [{ data: pipelines, error: e1 }, { data: steps, error: e2 }, { data: deals, error: e3 }] = await Promise.all([
-    supabase.from("crm_pipelines").select("*").order("ordem"),
-    supabase.from("crm_pipeline_steps").select("*").order("ordem"),
-    supabase.from("crm_deals").select("id, crm_deal_id, nome, pipeline_id, step_id, valor, updated_at_crm, synced_at"),
+    supabase.from("crm_pipelines").select("*").eq("account_id", accountId).order("ordem"),
+    supabase.from("crm_pipeline_steps").select("*").eq("account_id", accountId).order("ordem"),
+    supabase
+      .from("crm_deals")
+      .select("id, account_id, crm_deal_id, nome, pipeline_id, step_id, valor, updated_at_crm, synced_at")
+      .eq("account_id", accountId),
   ]);
   if (e1) throw e1;
   if (e2) throw e2;
