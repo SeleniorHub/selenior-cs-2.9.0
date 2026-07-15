@@ -4,21 +4,24 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CrmFunnelSection } from "@/components/dashboard/CrmFunnelSection";
 import { AddCrmAccountModal } from "@/components/crm/AddCrmAccountModal";
+import { CrmMetricsComparison } from "@/components/crm/CrmMetricsComparison";
 import { useToast } from "@/components/providers/ToastProvider";
 import { setCrmAccountAtivo } from "@/lib/actions/crm-accounts";
 import type { CrmAccountWithClient } from "@/lib/data/crm-accounts";
-import type { CrmDealRow, CrmPipelineRow, CrmPipelineStepRow } from "@/lib/types";
+import type { CrmDealRow, CrmPipelineRow, CrmPipelineStepRow, DailyAccountMetricRow } from "@/lib/types";
 
 export function CrmPageClient({
   accounts,
   selectedAccountId,
   funnel,
+  metrics,
   isAdmin,
   clientsWithoutAccount,
 }: {
   accounts: CrmAccountWithClient[];
   selectedAccountId: string | null;
   funnel: { pipelines: CrmPipelineRow[]; steps: CrmPipelineStepRow[]; deals: CrmDealRow[] } | null;
+  metrics: DailyAccountMetricRow[];
   isAdmin: boolean;
   clientsWithoutAccount: { id: string; nome: string }[];
 }) {
@@ -81,6 +84,8 @@ export function CrmPageClient({
       {funnel && (
         <CrmFunnelSection pipelines={funnel.pipelines} steps={funnel.steps} deals={funnel.deals} />
       )}
+
+      <CrmMetricsComparison metrics={metrics} />
 
       {isAdmin && (
         <div className="chart-card">

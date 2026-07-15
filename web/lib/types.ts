@@ -108,3 +108,9 @@ export type CrmDealRow = {
   updated_at_crm: string | null;
   synced_at: string;
 };
+
+export type DailyAccountMetricRow = {
+  data: string;
+  novos_leads: number;
+  total_mensagens: number;
+};

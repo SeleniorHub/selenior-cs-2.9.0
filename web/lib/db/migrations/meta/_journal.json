@@ -36,6 +36,13 @@
       "when": 1784070000000,
       "tag": "0004_crm_accounts_webhook_url",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784150000000,
+      "tag": "0005_daily_account_metrics",
+      "breakpoints": true
     }
   ]
 }

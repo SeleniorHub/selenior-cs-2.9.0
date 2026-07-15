@@ -1,5 +1,5 @@
 import { listClientsWithoutCrmAccount, listCrmAccountsWithClients } from "@/lib/data/crm-accounts";
-import { getCrmFunnel, getCurrentProfile } from "@/lib/data/queries";
+import { getCrmFunnel, getCurrentProfile, getDailyAccountMetrics } from "@/lib/data/queries";
 import { CrmPageClient } from "@/components/crm/CrmPageClient";
 
 export default async function CrmPage({
@@ -12,7 +12,9 @@ export default async function CrmPage({
   const isAdmin = profile?.role === "admin";
 
   const selectedAccountId = accounts.find((a) => a.id === accountParam)?.id ?? accounts[0]?.id ?? null;
-  const funnel = selectedAccountId ? await getCrmFunnel(selectedAccountId) : null;
+  const [funnel, metrics] = selectedAccountId
+    ? await Promise.all([getCrmFunnel(selectedAccountId), getDailyAccountMetrics(selectedAccountId)])
+    : [null, []];
   const clientsWithoutAccount = isAdmin ? await listClientsWithoutCrmAccount() : [];
 
   return (
@@ -20,6 +22,7 @@ export default async function CrmPage({
       accounts={accounts}
       selectedAccountId={selectedAccountId}
       funnel={funnel}
+      metrics={metrics}
       isAdmin={isAdmin}
       clientsWithoutAccount={clientsWithoutAccount}
     />

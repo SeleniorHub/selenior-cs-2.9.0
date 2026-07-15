@@ -2,6 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import * as schema from "@/lib/db/schema";
+import { getDashboardCounters } from "@/lib/crm/dashboard";
 
 function todayBrasilia(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
@@ -14,9 +15,10 @@ export async function POST(request: NextRequest) {
   }
 
   const data = todayBrasilia();
+  const todayDate = new Date(`${data}T12:00:00`);
 
   const accounts = await db
-    .select({ id: schema.crmAccounts.id })
+    .select({ id: schema.crmAccounts.id, apiKey: schema.crmAccounts.apiKey })
     .from(schema.crmAccounts)
     .where(eq(schema.crmAccounts.ativo, true));
 
@@ -58,6 +60,29 @@ export async function POST(request: NextRequest) {
         });
       totalRows++;
     }
+
+    const [{ novosLeads }] = await db
+      .select({ novosLeads: sql<number>`count(*)::int` })
+      .from(schema.crmDeals)
+      .where(
+        sql`${schema.crmDeals.accountId} = ${account.id} and (${schema.crmDeals.createdAtCrm} at time zone 'America/Sao_Paulo')::date = ${data}::date`
+      );
+
+    let totalMensagens = 0;
+    try {
+      const counters = await getDashboardCounters(account.apiKey, todayDate, todayDate);
+      totalMensagens = counters.totalMessages;
+    } catch {
+      // Não trava o snapshot do funil se só a chamada de contadores falhar.
+    }
+
+    await db
+      .insert(schema.dailyAccountMetrics)
+      .values({ accountId: account.id, data, novosLeads, totalMensagens })
+      .onConflictDoUpdate({
+        target: [schema.dailyAccountMetrics.accountId, schema.dailyAccountMetrics.data],
+        set: { novosLeads, totalMensagens },
+      });
   }
 
   return NextResponse.json({ ok: true, data, accounts: accounts.length, rows: totalRows });

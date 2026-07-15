@@ -124,6 +124,22 @@ export const dailyFunnelSnapshot = pgTable(
   ]
 );
 
+// Métricas diárias por conta, pra comparação de períodos (ontem x hoje, semana x
+// semana, mês x mês etc.) que o CRM não oferece nativamente.
+export const dailyAccountMetrics = pgTable(
+  "daily_account_metrics",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => crmAccounts.id, { onDelete: "cascade" }),
+    data: date("data").notNull(),
+    novosLeads: integer("novos_leads").notNull().default(0),
+    totalMensagens: integer("total_mensagens").notNull().default(0),
+  },
+  (t) => [unique("daily_account_metrics_unique").on(t.accountId, t.data)]
+);
+
 export const webhookEventsLog = pgTable("webhook_events_log", {
   id: uuid("id").primaryKey().defaultRandom(),
   accountId: uuid("account_id").references(() => crmAccounts.id, { onDelete: "set null" }),

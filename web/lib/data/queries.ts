@@ -6,6 +6,7 @@ import type {
   CrmDealRow,
   CrmPipelineRow,
   CrmPipelineStepRow,
+  DailyAccountMetricRow,
   Goal,
   Meeting,
   MrrHistoryEntry,
@@ -124,6 +125,22 @@ export async function getCrmFunnel(accountId: string) {
     steps: (steps ?? []) as CrmPipelineStepRow[],
     deals: (deals ?? []) as CrmDealRow[],
   };
+}
+
+export async function getDailyAccountMetrics(accountId: string, daysBack = 65): Promise<DailyAccountMetricRow[]> {
+  const supabase = await createClient();
+  const from = new Date();
+  from.setDate(from.getDate() - daysBack);
+  const fromStr = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(from);
+
+  const { data, error } = await supabase
+    .from("daily_account_metrics")
+    .select("data, novos_leads, total_mensagens")
+    .eq("account_id", accountId)
+    .gte("data", fromStr)
+    .order("data");
+  if (error) throw error;
+  return (data ?? []) as DailyAccountMetricRow[];
 }
 
 export async function getCurrentProfile() {
