@@ -15,12 +15,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
-  const results = await syncAllActiveCrmAccounts(db, { source: "reconciliation" });
+  try {
+    const results = await syncAllActiveCrmAccounts(db, { source: "reconciliation" });
 
-  return NextResponse.json({
-    ok: true,
-    accounts: results.length,
-    totalDeals: results.reduce((s, r) => s + r.deals, 0),
-    totalStageEvents: results.reduce((s, r) => s + r.stageEvents, 0),
-  });
+    return NextResponse.json({
+      ok: true,
+      accounts: results.length,
+      totalDeals: results.reduce((s, r) => s + r.deals, 0),
+      totalStageEvents: results.reduce((s, r) => s + r.stageEvents, 0),
+    });
+  } catch (e) {
+    const error = e instanceof Error ? { message: e.message, stack: e.stack } : { message: String(e) };
+    return NextResponse.json({ ok: false, error }, { status: 500 });
+  }
 }
