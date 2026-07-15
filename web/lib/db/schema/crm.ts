@@ -135,7 +135,11 @@ export const dailyAccountMetrics = pgTable(
       .references(() => crmAccounts.id, { onDelete: "cascade" }),
     data: date("data").notNull(),
     novosLeads: integer("novos_leads").notNull().default(0),
-    totalMensagens: integer("total_mensagens").notNull().default(0),
+    // Número de conversas (tickets) distintas com atividade no dia — não é
+    // contagem de mensagens brutas. Calculado ao final do dia (cron 23:55) via
+    // updatedAt dos tickets; não dá pra recalcular retroativamente pra dias
+    // passados (o CRM só expõe o estado atual do ticket, não um log histórico).
+    interacoes: integer("interacoes").notNull().default(0),
   },
   (t) => [unique("daily_account_metrics_unique").on(t.accountId, t.data)]
 );

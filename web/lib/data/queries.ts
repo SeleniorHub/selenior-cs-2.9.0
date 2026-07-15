@@ -127,7 +127,7 @@ export async function getCrmFunnel(accountId: string) {
   };
 }
 
-export async function getDailyAccountMetrics(accountId: string, daysBack = 65): Promise<DailyAccountMetricRow[]> {
+export async function getDailyAccountMetrics(accountId: string, daysBack = 190): Promise<DailyAccountMetricRow[]> {
   const supabase = await createClient();
   const from = new Date();
   from.setDate(from.getDate() - daysBack);
@@ -135,7 +135,7 @@ export async function getDailyAccountMetrics(accountId: string, daysBack = 65): 
 
   const { data, error } = await supabase
     .from("daily_account_metrics")
-    .select("data, novos_leads, total_mensagens")
+    .select("data, novos_leads, interacoes")
     .eq("account_id", accountId)
     .gte("data", fromStr)
     .order("data");

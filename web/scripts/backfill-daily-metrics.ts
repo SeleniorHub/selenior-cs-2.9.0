@@ -5,25 +5,16 @@ import { eq, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "../lib/db/schema";
-import { getDashboardCounters } from "../lib/crm/dashboard";
 
 // Backfill único: novos leads retroativo pra todo o histórico que já temos em
-// crm_deals (não precisa de chamada de API, é só agrupar por dia); total de
-// mensagens retroativo pros últimos N dias via /dashboard/counters (uma chamada por
-// dia — a API só dá o agregado do período pedido, não uma série histórica pronta).
-const BACKFILL_DAYS = Number(process.argv[3] ?? 60);
-
-function todayBrasilia(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
-}
-
-function daysAgo(n: number): Date {
-  const d = new Date(`${todayBrasilia()}T12:00:00`);
-  d.setDate(d.getDate() - n);
-  return d;
-}
-
-async function backfillAccount(db: ReturnType<typeof drizzle>, account: { id: string; nome: string; apiKey: string }) {
+// crm_deals (não precisa de chamada de API, é só agrupar por dia).
+//
+// "interacoes" (conversas com atividade no dia) NÃO dá pra recalcular
+// retroativamente — o CRM só expõe o estado atual de cada ticket (updatedAt),
+// não um log histórico de quando cada um teve atividade. Só é possível medir
+// corretamente no fechamento do próprio dia (é o que o cron de funnel-snapshot
+// faz às 23:55) — o histórico começa a acumular a partir de hoje.
+async function backfillAccount(db: ReturnType<typeof drizzle>, account: { id: string; nome: string }) {
   console.log(`\n=== ${account.nome} ===`);
 
   const leadRows = await db
@@ -45,26 +36,6 @@ async function backfillAccount(db: ReturnType<typeof drizzle>, account: { id: st
       });
   }
   console.log(`  novos_leads: ${leadRows.length} dias com dado histórico.`);
-
-  let messagesDone = 0;
-  for (let i = 0; i < BACKFILL_DAYS; i++) {
-    const day = daysAgo(i);
-    const dataStr = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(day);
-    try {
-      const counters = await getDashboardCounters(account.apiKey, day, day);
-      await db
-        .insert(schema.dailyAccountMetrics)
-        .values({ accountId: account.id, data: dataStr, totalMensagens: counters.totalMessages })
-        .onConflictDoUpdate({
-          target: [schema.dailyAccountMetrics.accountId, schema.dailyAccountMetrics.data],
-          set: { totalMensagens: counters.totalMessages },
-        });
-      messagesDone++;
-    } catch (e) {
-      console.log(`  [${dataStr}] falhou: ${e instanceof Error ? e.message : e}`);
-    }
-  }
-  console.log(`  total_mensagens: ${messagesDone}/${BACKFILL_DAYS} dias preenchidos.`);
 }
 
 async function main() {
@@ -75,7 +46,7 @@ async function main() {
 
   const accountFilter = process.argv[2];
   const accounts = await db
-    .select({ id: schema.crmAccounts.id, nome: schema.crmAccounts.nome, apiKey: schema.crmAccounts.apiKey })
+    .select({ id: schema.crmAccounts.id, nome: schema.crmAccounts.nome })
     .from(schema.crmAccounts)
     .where(eq(schema.crmAccounts.ativo, true));
 

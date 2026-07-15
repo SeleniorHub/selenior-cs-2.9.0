@@ -112,5 +112,5 @@ export type CrmDealRow = {
 export type DailyAccountMetricRow = {
   data: string;
   novos_leads: number;
-  total_mensagens: number;
+  interacoes: number;
 };
