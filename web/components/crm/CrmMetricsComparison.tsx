@@ -9,7 +9,7 @@ import { useTheme } from "@/components/providers/ThemeProvider";
 import type { DailyAccountMetricRow } from "@/lib/types";
 
 type PeriodType = "dia" | "semana" | "mes" | "ult7" | "ult30" | "ult90";
-type MetricField = "novos_leads" | "interacoes" | "novos_contatos";
+type MetricField = "novos_leads" | "interacoes";
 
 const PERIOD_LABELS: Record<PeriodType, string> = {
   dia: "Ontem × Hoje",
@@ -23,7 +23,6 @@ const PERIOD_LABELS: Record<PeriodType, string> = {
 const METRIC_LABELS: Record<MetricField, string> = {
   novos_leads: "Novos leads",
   interacoes: "Interações (conversas)",
-  novos_contatos: "Novos contatos",
 };
 
 function toKey(d: Date): string {
@@ -181,15 +180,12 @@ export function CrmMetricsComparison({ metrics }: { metrics: DailyAccountMetricR
       leadsPrevious: sum(previousDays, "novos_leads"),
       interCurrent: sum(currentDays, "interacoes"),
       interPrevious: sum(previousDays, "interacoes"),
-      contatosCurrent: sum(currentDays, "novos_contatos"),
-      contatosPrevious: sum(previousDays, "novos_contatos"),
     };
   }, [byDate, currentDays, previousDays]);
 
   const last30 = useMemo(() => lastNDays(todayBrasilia(), 30), []);
   const sparkLeads = useMemo(() => last30.map((d) => byDate.get(d)?.novos_leads ?? 0), [last30, byDate]);
   const sparkInter = useMemo(() => last30.map((d) => byDate.get(d)?.interacoes ?? 0), [last30, byDate]);
-  const sparkContatos = useMemo(() => last30.map((d) => byDate.get(d)?.novos_contatos ?? 0), [last30, byDate]);
 
   const weeklyHistory = useMemo(() => {
     const byWeek = new Map<string, number>();
@@ -241,10 +237,9 @@ export function CrmMetricsComparison({ metrics }: { metrics: DailyAccountMetricR
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 16, margin: "16px 0" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, margin: "16px 0" }}>
         <MetricCard label="Novos leads" current={sums.leadsCurrent} previous={sums.leadsPrevious} sparklineData={sparkLeads} color={lc} />
         <MetricCard label="Interações (conversas)" current={sums.interCurrent} previous={sums.interPrevious} sparklineData={sparkInter} color={lc} />
-        <MetricCard label="Novos contatos" current={sums.contatosCurrent} previous={sums.contatosPrevious} sparklineData={sparkContatos} color={lc} />
       </div>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>

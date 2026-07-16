@@ -140,10 +140,6 @@ export const dailyAccountMetrics = pgTable(
     // updatedAt dos tickets; não dá pra recalcular retroativamente pra dias
     // passados (o CRM só expõe o estado atual do ticket, não um log histórico).
     interacoes: integer("interacoes").notNull().default(0),
-    // Novos contatos (qualquer pessoa que chamou no WhatsApp) — diferente de
-    // novos_leads, que só conta quem virou negócio no funil de vendas. Sem sync de
-    // /contact ainda, então só é preenchido via backfill manual por enquanto.
-    novosContatos: integer("novos_contatos").notNull().default(0),
   },
   (t) => [unique("daily_account_metrics_unique").on(t.accountId, t.data)]
 );

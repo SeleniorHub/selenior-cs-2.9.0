@@ -135,7 +135,7 @@ export async function getDailyAccountMetrics(accountId: string, daysBack = 190):
 
   const { data, error } = await supabase
     .from("daily_account_metrics")
-    .select("data, novos_leads, interacoes, novos_contatos")
+    .select("data, novos_leads, interacoes")
     .eq("account_id", accountId)
     .gte("data", fromStr)
     .order("data");

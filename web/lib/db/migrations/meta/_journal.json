@@ -57,6 +57,13 @@
       "when": 1784240000000,
       "tag": "0007_novos_contatos",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784250000000,
+      "tag": "0008_drop_novos_contatos",
+      "breakpoints": true
     }
   ]
 }
