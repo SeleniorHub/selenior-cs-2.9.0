@@ -113,4 +113,5 @@ export type DailyAccountMetricRow = {
   data: string;
   novos_leads: number;
   interacoes: number;
+  novos_contatos: number;
 };
