@@ -6,12 +6,13 @@ import type { ChartOptions } from "chart.js";
 import "@/lib/charts/register";
 import { getChartTheme, lineColor } from "@/lib/charts/theme";
 import { useTheme } from "@/components/providers/ThemeProvider";
+import { DateRangeCalendar } from "@/components/crm/DateRangeCalendar";
 import type { DailyAccountMetricRow } from "@/lib/types";
 
-type PeriodType = "dia" | "semana" | "mes" | "ult7" | "ult30" | "ult90";
+type PeriodType = "dia" | "semana" | "mes" | "ult7" | "ult30" | "ult90" | "personalizado";
 type MetricField = "novos_leads" | "interacoes";
 
-const PERIOD_LABELS: Record<PeriodType, string> = {
+const PERIOD_LABELS: Record<Exclude<PeriodType, "personalizado">, string> = {
   dia: "Ontem × Hoje",
   semana: "Semana passada × Esta semana",
   mes: "Mês passado × Este mês",
@@ -19,6 +20,21 @@ const PERIOD_LABELS: Record<PeriodType, string> = {
   ult30: "Últimos 30 dias × 30 anteriores",
   ult90: "Últimos 3 meses × 3 meses anteriores",
 };
+
+function brLabel(dateStr: string): string {
+  const [, m, d] = dateStr.split("-");
+  return `${d}/${m}`;
+}
+
+function daysBetween(startKey: string, endKey: string): string[] {
+  const days: string[] = [];
+  const start = new Date(`${startKey}T12:00:00`);
+  const end = new Date(`${endKey}T12:00:00`);
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    days.push(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(d));
+  }
+  return days;
+}
 
 const METRIC_LABELS: Record<MetricField, string> = {
   novos_leads: "Novos leads",
@@ -43,8 +59,21 @@ function lastNDays(endExclusive: Date, n: number): string[] {
   return days;
 }
 
-function getRanges(type: PeriodType): { currentDays: string[]; previousDays: string[] } {
+function getRanges(
+  type: PeriodType,
+  customRange: { start: string; end: string } | null
+): { currentDays: string[]; previousDays: string[] } {
   const today = todayBrasilia();
+
+  if (type === "personalizado" && customRange) {
+    const currentDays = daysBetween(customRange.start, customRange.end);
+    const prevEnd = new Date(`${customRange.start}T12:00:00`);
+    prevEnd.setDate(prevEnd.getDate() - 1);
+    const prevStart = new Date(prevEnd);
+    prevStart.setDate(prevStart.getDate() - (currentDays.length - 1));
+    const previousDays = daysBetween(toKey(prevStart), toKey(prevEnd));
+    return { currentDays, previousDays };
+  }
 
   if (type === "dia") {
     const yesterday = new Date(today);
@@ -164,6 +193,8 @@ export function CrmMetricsComparison({ metrics }: { metrics: DailyAccountMetricR
   const [period, setPeriod] = useState<PeriodType>("semana");
   const [metric, setMetric] = useState<MetricField>("novos_leads");
   const [showHistorico, setShowHistorico] = useState(false);
+  const [customRange, setCustomRange] = useState<{ start: string; end: string } | null>(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   const byDate = useMemo(() => {
     const m = new Map<string, DailyAccountMetricRow>();
@@ -171,7 +202,7 @@ export function CrmMetricsComparison({ metrics }: { metrics: DailyAccountMetricR
     return m;
   }, [metrics]);
 
-  const { currentDays, previousDays } = useMemo(() => getRanges(period), [period]);
+  const { currentDays, previousDays } = useMemo(() => getRanges(period, customRange), [period, customRange]);
 
   const sums = useMemo(() => {
     const sum = (days: string[], field: MetricField) => days.reduce((s, d) => s + (byDate.get(d)?.[field] ?? 0), 0);
@@ -196,7 +227,8 @@ export function CrmMetricsComparison({ metrics }: { metrics: DailyAccountMetricR
     return [...byWeek.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1));
   }, [metrics, metric]);
 
-  const dayLabels = currentDays.map((_, i) => `Dia ${i + 1}`);
+  const dayLabels =
+    period === "personalizado" ? currentDays.map((d) => brLabel(d)) : currentDays.map((_, i) => `Dia ${i + 1}`);
 
   const comparisonOptions: ChartOptions<"line"> = {
     responsive: true,
@@ -229,13 +261,37 @@ export function CrmMetricsComparison({ metrics }: { metrics: DailyAccountMetricR
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <div className="chart-title">Comparação de períodos</div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {(Object.keys(PERIOD_LABELS) as PeriodType[]).map((k) => (
-            <button key={k} className={`filter-btn${period === k ? " active" : ""}`} onClick={() => setPeriod(k)}>
+          {(Object.keys(PERIOD_LABELS) as Exclude<PeriodType, "personalizado">[]).map((k) => (
+            <button
+              key={k}
+              className={`filter-btn${period === k ? " active" : ""}`}
+              onClick={() => {
+                setPeriod(k);
+                setCustomRange(null);
+              }}
+            >
               {PERIOD_LABELS[k]}
             </button>
           ))}
+          <button
+            className={`filter-btn${period === "personalizado" ? " active" : ""}`}
+            onClick={() => setCalendarOpen(true)}
+          >
+            📅 {period === "personalizado" && customRange ? `${brLabel(customRange.start)} → ${brLabel(customRange.end)}` : "Período personalizado"}
+          </button>
         </div>
       </div>
+
+      <DateRangeCalendar
+        open={calendarOpen}
+        onClose={() => setCalendarOpen(false)}
+        initialStart={customRange?.start}
+        initialEnd={customRange?.end}
+        onApply={(start, end) => {
+          setCustomRange({ start, end });
+          setPeriod("personalizado");
+        }}
+      />
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, margin: "16px 0" }}>
         <MetricCard label="Novos leads" current={sums.leadsCurrent} previous={sums.leadsPrevious} sparklineData={sparkLeads} color={lc} />
