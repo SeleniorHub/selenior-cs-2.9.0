@@ -30,6 +30,8 @@ export type CrmCommercialOrder = {
   wonAt: string | null;
   lostAt: string | null;
   lostReason: string | null;
+  meetingCreatedAt: string | null;
+  meetingRealizedAt: string | null;
   contactId: number;
   commercialSalesStepId: number;
   title: string | null;

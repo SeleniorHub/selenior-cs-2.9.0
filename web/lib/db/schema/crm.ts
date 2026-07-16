@@ -83,6 +83,10 @@ export const crmDeals = pgTable(
     createdAtCrm: timestamp("created_at_crm", { withTimezone: true }),
     updatedAtCrm: timestamp("updated_at_crm", { withTimezone: true }),
     entrouPipelineAt: timestamp("entrou_pipeline_at", { withTimezone: true }),
+    // Pra medir taxa de no-show: reunião foi marcada mas nunca aconteceu quando
+    // meetingCreatedAt existe e meetingRealizedAt é nulo.
+    meetingCreatedAt: timestamp("meeting_created_at", { withTimezone: true }),
+    meetingRealizedAt: timestamp("meeting_realized_at", { withTimezone: true }),
     syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [unique("crm_deals_account_unique").on(t.accountId, t.crmDealId)]
@@ -90,6 +94,11 @@ export const crmDeals = pgTable(
 
 export const dealStageEvents = pgTable("deal_stage_events", {
   id: uuid("id").primaryKey().defaultRandom(),
+  // Denormalizado pra permitir filtrar por conta direto (sem precisar de um IN com
+  // milhares de deal_ids, que estoura limite de query do PostgREST).
+  accountId: uuid("account_id")
+    .notNull()
+    .references(() => crmAccounts.id, { onDelete: "cascade" }),
   dealId: uuid("deal_id")
     .notNull()
     .references(() => crmDeals.id, { onDelete: "cascade" }),

@@ -4,10 +4,13 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CrmFunnelSection } from "@/components/dashboard/CrmFunnelSection";
 import { AddCrmAccountModal } from "@/components/crm/AddCrmAccountModal";
+import { CrmFunnelVelocity } from "@/components/crm/CrmFunnelVelocity";
 import { CrmMetricsComparison } from "@/components/crm/CrmMetricsComparison";
+import { CrmNoShowCard } from "@/components/crm/CrmNoShowCard";
 import { useToast } from "@/components/providers/ToastProvider";
 import { setCrmAccountAtivo } from "@/lib/actions/crm-accounts";
 import type { CrmAccountWithClient } from "@/lib/data/crm-accounts";
+import type { FunnelStepVelocity, MeetingNoShowStats } from "@/lib/data/crm-insights";
 import type { CrmDealRow, CrmPipelineRow, CrmPipelineStepRow, DailyAccountMetricRow } from "@/lib/types";
 
 export function CrmPageClient({
@@ -15,6 +18,8 @@ export function CrmPageClient({
   selectedAccountId,
   funnel,
   metrics,
+  noShowStats,
+  funnelVelocity,
   isAdmin,
   clientsWithoutAccount,
 }: {
@@ -22,6 +27,8 @@ export function CrmPageClient({
   selectedAccountId: string | null;
   funnel: { pipelines: CrmPipelineRow[]; steps: CrmPipelineStepRow[]; deals: CrmDealRow[] } | null;
   metrics: DailyAccountMetricRow[];
+  noShowStats: MeetingNoShowStats | null;
+  funnelVelocity: FunnelStepVelocity[];
   isAdmin: boolean;
   clientsWithoutAccount: { id: string; nome: string }[];
 }) {
@@ -86,6 +93,11 @@ export function CrmPageClient({
       )}
 
       <CrmMetricsComparison metrics={metrics} />
+
+      <div className="charts-grid">
+        {noShowStats && <CrmNoShowCard stats={noShowStats} />}
+        <CrmFunnelVelocity steps={funnelVelocity} />
+      </div>
 
       {isAdmin && (
         <div className="chart-card">

@@ -129,6 +129,8 @@ export async function syncCrmAccount(
       origem: opts.source,
       createdAtCrm: o.createdAt ? new Date(o.createdAt) : null,
       updatedAtCrm: o.updatedAt ? new Date(o.updatedAt) : null,
+      meetingCreatedAt: o.meetingCreatedAt ? new Date(o.meetingCreatedAt) : null,
+      meetingRealizedAt: o.meetingRealizedAt ? new Date(o.meetingRealizedAt) : null,
       _order: o,
     };
   });
@@ -150,6 +152,8 @@ export async function syncCrmAccount(
           stepId: sql`excluded.step_id`,
           valor: sql`excluded.valor`,
           updatedAtCrm: sql`excluded.updated_at_crm`,
+          meetingCreatedAt: sql`excluded.meeting_created_at`,
+          meetingRealizedAt: sql`excluded.meeting_realized_at`,
           syncedAt: sql`now()`,
         },
       })
@@ -182,6 +186,7 @@ export async function syncCrmAccount(
     if (!c.length) continue;
     await db.insert(schema.dealStageEvents).values(
       c.map((e) => ({
+        accountId: account.id,
         dealId: e.crmDealId,
         fromStepId: e.fromStepId,
         toStepId: e.toStepId,

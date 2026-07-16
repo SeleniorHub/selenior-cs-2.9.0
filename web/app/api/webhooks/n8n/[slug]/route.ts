@@ -55,6 +55,8 @@ async function handleCommercialOrderEvent(accountId: string, order: CrmCommercia
       origem: "webhook_n8n",
       createdAtCrm: order.createdAt ? new Date(order.createdAt) : null,
       updatedAtCrm: order.updatedAt ? new Date(order.updatedAt) : null,
+      meetingCreatedAt: order.meetingCreatedAt ? new Date(order.meetingCreatedAt) : null,
+      meetingRealizedAt: order.meetingRealizedAt ? new Date(order.meetingRealizedAt) : null,
     })
     .onConflictDoUpdate({
       target: [schema.crmDeals.accountId, schema.crmDeals.crmDealId],
@@ -65,6 +67,8 @@ async function handleCommercialOrderEvent(accountId: string, order: CrmCommercia
         stepId,
         valor: order.amount || null,
         updatedAtCrm: order.updatedAt ? new Date(order.updatedAt) : null,
+        meetingCreatedAt: order.meetingCreatedAt ? new Date(order.meetingCreatedAt) : null,
+        meetingRealizedAt: order.meetingRealizedAt ? new Date(order.meetingRealizedAt) : null,
         syncedAt: new Date(),
       },
     })
@@ -74,6 +78,7 @@ async function handleCommercialOrderEvent(accountId: string, order: CrmCommercia
   const stepChanged = existing && existing.stepId !== stepId;
   if ((isNew || stepChanged) && stepId) {
     await db.insert(schema.dealStageEvents).values({
+      accountId,
       dealId: row.id,
       fromStepId: existing?.stepId ?? null,
       toStepId: stepId,
