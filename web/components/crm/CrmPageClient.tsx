@@ -8,6 +8,7 @@ import { CrmFunnelVelocity } from "@/components/crm/CrmFunnelVelocity";
 import { CrmMetricsComparison } from "@/components/crm/CrmMetricsComparison";
 import { CrmNoShowCard } from "@/components/crm/CrmNoShowCard";
 import { CrmResponseTime } from "@/components/crm/CrmResponseTime";
+import { CrmTagBreakdown } from "@/components/crm/CrmTagBreakdown";
 import { CrmUnreadAlert } from "@/components/crm/CrmUnreadAlert";
 import { useToast } from "@/components/providers/ToastProvider";
 import { setCrmAccountAtivo } from "@/lib/actions/crm-accounts";
@@ -16,6 +17,7 @@ import type {
   FunnelStepVelocity,
   MeetingNoShowStats,
   ResponseTimeStats,
+  TagBreakdownItem,
   UnreadTicketsSummary,
 } from "@/lib/data/crm-insights";
 import type { CrmDealRow, CrmPipelineRow, CrmPipelineStepRow, DailyAccountMetricRow } from "@/lib/types";
@@ -29,6 +31,7 @@ export function CrmPageClient({
   funnelVelocity,
   unreadAlert,
   responseTime,
+  tagBreakdown,
   isAdmin,
   clientsWithoutAccount,
 }: {
@@ -40,6 +43,7 @@ export function CrmPageClient({
   funnelVelocity: FunnelStepVelocity[];
   unreadAlert: UnreadTicketsSummary | null;
   responseTime: ResponseTimeStats | null;
+  tagBreakdown: TagBreakdownItem[];
   isAdmin: boolean;
   clientsWithoutAccount: { id: string; nome: string }[];
 }) {
@@ -114,6 +118,8 @@ export function CrmPageClient({
         {unreadAlert && <CrmUnreadAlert summary={unreadAlert} />}
         {responseTime && <CrmResponseTime stats={responseTime} />}
       </div>
+
+      <CrmTagBreakdown tags={tagBreakdown} />
 
       {isAdmin && (
         <div className="chart-card">

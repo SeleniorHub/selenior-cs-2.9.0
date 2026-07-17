@@ -87,6 +87,10 @@ export const crmDeals = pgTable(
     // meetingCreatedAt existe e meetingRealizedAt é nulo.
     meetingCreatedAt: timestamp("meeting_created_at", { withTimezone: true }),
     meetingRealizedAt: timestamp("meeting_realized_at", { withTimezone: true }),
+    // Tags do contato desse negócio (vêm embutidas no próprio payload de
+    // /commercial-order, não precisa de sync separado de /contact). Usado pra
+    // origem do lead (ex: "META", "Instagram", "Indicação").
+    tags: jsonb("tags").$type<{ id: number; name: string; color: string }[]>(),
     syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [unique("crm_deals_account_unique").on(t.accountId, t.crmDealId)]

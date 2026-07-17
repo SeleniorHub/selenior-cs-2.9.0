@@ -131,6 +131,7 @@ export async function syncCrmAccount(
       updatedAtCrm: o.updatedAt ? new Date(o.updatedAt) : null,
       meetingCreatedAt: o.meetingCreatedAt ? new Date(o.meetingCreatedAt) : null,
       meetingRealizedAt: o.meetingRealizedAt ? new Date(o.meetingRealizedAt) : null,
+      tags: o.contact?.tags ?? null,
       _order: o,
     };
   });
@@ -154,6 +155,7 @@ export async function syncCrmAccount(
           updatedAtCrm: sql`excluded.updated_at_crm`,
           meetingCreatedAt: sql`excluded.meeting_created_at`,
           meetingRealizedAt: sql`excluded.meeting_realized_at`,
+          tags: sql`excluded.tags`,
           syncedAt: sql`now()`,
         },
       })

@@ -57,6 +57,7 @@ async function handleCommercialOrderEvent(accountId: string, order: CrmCommercia
       updatedAtCrm: order.updatedAt ? new Date(order.updatedAt) : null,
       meetingCreatedAt: order.meetingCreatedAt ? new Date(order.meetingCreatedAt) : null,
       meetingRealizedAt: order.meetingRealizedAt ? new Date(order.meetingRealizedAt) : null,
+      tags: order.contact?.tags ?? null,
     })
     .onConflictDoUpdate({
       target: [schema.crmDeals.accountId, schema.crmDeals.crmDealId],
@@ -69,6 +70,7 @@ async function handleCommercialOrderEvent(accountId: string, order: CrmCommercia
         updatedAtCrm: order.updatedAt ? new Date(order.updatedAt) : null,
         meetingCreatedAt: order.meetingCreatedAt ? new Date(order.meetingCreatedAt) : null,
         meetingRealizedAt: order.meetingRealizedAt ? new Date(order.meetingRealizedAt) : null,
+        tags: order.contact?.tags ?? null,
         syncedAt: new Date(),
       },
     })

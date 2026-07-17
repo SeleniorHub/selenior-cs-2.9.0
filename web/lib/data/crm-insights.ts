@@ -185,3 +185,35 @@ export async function getResponseTimeStats(accountId: string, daysBack = 60): Pr
     semanas,
   };
 }
+
+export type TagBreakdownItem = {
+  nome: string;
+  cor: string | null;
+  negocios: number;
+};
+
+// Tags vêm do contato de cada negócio (já embutidas no payload de
+// /commercial-order, sem sync separado). Não filtramos por "tag de origem" — cada
+// conta usa as tags de um jeito diferente (mistura origem de lead com status
+// operacional tipo "Risco"/"Marcar call"), então mostramos tudo e deixa o usuário
+// reconhecer visualmente quais são relevantes pra ele.
+export async function getTagBreakdown(accountId: string, limit = 12): Promise<TagBreakdownItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.from("crm_deals").select("tags").eq("account_id", accountId).not("tags", "is", null);
+  if (error) throw error;
+
+  const counts = new Map<string, { cor: string | null; count: number }>();
+  for (const row of data ?? []) {
+    const tags = (row.tags ?? []) as { id: number; name: string; color: string }[];
+    for (const t of tags) {
+      const cur = counts.get(t.name) ?? { cor: t.color, count: 0 };
+      cur.count++;
+      counts.set(t.name, cur);
+    }
+  }
+
+  return [...counts.entries()]
+    .map(([nome, v]) => ({ nome, cor: v.cor, negocios: v.count }))
+    .sort((a, b) => b.negocios - a.negocios)
+    .slice(0, limit);
+}

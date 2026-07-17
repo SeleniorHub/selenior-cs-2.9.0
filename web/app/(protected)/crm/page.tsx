@@ -3,6 +3,7 @@ import {
   getFunnelVelocity,
   getMeetingNoShowStats,
   getResponseTimeStats,
+  getTagBreakdown,
   getUnreadTicketsAlert,
 } from "@/lib/data/crm-insights";
 import { getCrmFunnel, getCurrentProfile, getDailyAccountMetrics } from "@/lib/data/queries";
@@ -18,7 +19,7 @@ export default async function CrmPage({
   const isAdmin = profile?.role === "admin";
 
   const selectedAccountId = accounts.find((a) => a.id === accountParam)?.id ?? accounts[0]?.id ?? null;
-  const [funnel, metrics, noShowStats, funnelVelocity, unreadAlert, responseTime] = selectedAccountId
+  const [funnel, metrics, noShowStats, funnelVelocity, unreadAlert, responseTime, tagBreakdown] = selectedAccountId
     ? await Promise.all([
         getCrmFunnel(selectedAccountId),
         getDailyAccountMetrics(selectedAccountId),
@@ -26,8 +27,9 @@ export default async function CrmPage({
         getFunnelVelocity(selectedAccountId),
         getUnreadTicketsAlert(selectedAccountId),
         getResponseTimeStats(selectedAccountId),
+        getTagBreakdown(selectedAccountId),
       ])
-    : [null, [], null, [], null, null];
+    : [null, [], null, [], null, null, []];
   const clientsWithoutAccount = isAdmin ? await listClientsWithoutCrmAccount() : [];
 
   return (
@@ -40,6 +42,7 @@ export default async function CrmPage({
       funnelVelocity={funnelVelocity}
       unreadAlert={unreadAlert}
       responseTime={responseTime}
+      tagBreakdown={tagBreakdown}
       isAdmin={isAdmin}
       clientsWithoutAccount={clientsWithoutAccount}
     />
