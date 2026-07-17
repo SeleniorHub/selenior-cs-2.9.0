@@ -113,4 +113,6 @@ export type DailyAccountMetricRow = {
   data: string;
   novos_leads: number;
   interacoes: number;
+  vendas: number;
+  faturamento: string;
 };

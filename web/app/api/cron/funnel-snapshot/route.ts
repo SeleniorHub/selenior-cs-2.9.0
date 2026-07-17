@@ -76,12 +76,22 @@ export async function POST(request: NextRequest) {
       // Não trava o snapshot do funil se só a contagem de tickets falhar.
     }
 
+    const [{ vendas, faturamento }] = await db
+      .select({
+        vendas: sql<number>`count(*)::int`,
+        faturamento: sql<string>`coalesce(sum(${schema.crmDeals.valor}), 0)::text`,
+      })
+      .from(schema.crmDeals)
+      .where(
+        sql`${schema.crmDeals.accountId} = ${account.id} and ${schema.crmDeals.status} = 'WON' and (${schema.crmDeals.wonAt} at time zone 'America/Sao_Paulo')::date = ${data}::date`
+      );
+
     await db
       .insert(schema.dailyAccountMetrics)
-      .values({ accountId: account.id, data, novosLeads, interacoes })
+      .values({ accountId: account.id, data, novosLeads, interacoes, vendas, faturamento })
       .onConflictDoUpdate({
         target: [schema.dailyAccountMetrics.accountId, schema.dailyAccountMetrics.data],
-        set: { novosLeads, interacoes },
+        set: { novosLeads, interacoes, vendas, faturamento },
       });
   }
 

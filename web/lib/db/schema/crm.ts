@@ -79,6 +79,13 @@ export const crmDeals = pgTable(
     pipelineId: uuid("pipeline_id").references(() => crmPipelines.id, { onDelete: "set null" }),
     stepId: uuid("step_id").references(() => crmPipelineSteps.id, { onDelete: "set null" }),
     valor: numeric("valor", { precision: 12, scale: 2 }),
+    // status "cru" do CRM (OPEN/WON/LOST) — fonte de verdade pra saber se um
+    // negócio está ganho de verdade. wonAt sozinho não é confiável: achamos
+    // negócios com status=LOST que também tinham wonAt preenchido (fica "marcado"
+    // mesmo se depois revertido).
+    status: text("status"),
+    wonAt: timestamp("won_at", { withTimezone: true }),
+    lostAt: timestamp("lost_at", { withTimezone: true }),
     origem: text("origem"),
     createdAtCrm: timestamp("created_at_crm", { withTimezone: true }),
     updatedAtCrm: timestamp("updated_at_crm", { withTimezone: true }),
@@ -153,6 +160,11 @@ export const dailyAccountMetrics = pgTable(
     // updatedAt dos tickets; não dá pra recalcular retroativamente pra dias
     // passados (o CRM só expõe o estado atual do ticket, não um log histórico).
     interacoes: integer("interacoes").notNull().default(0),
+    // Vendas (negócios com status=WON) e faturamento por dia — baseado em won_at,
+    // que reflete a data real de fechamento (esse sim dá pra recalcular
+    // retroativamente pra qualquer mês passado, diferente de interações).
+    vendas: integer("vendas").notNull().default(0),
+    faturamento: numeric("faturamento", { precision: 14, scale: 2 }).notNull().default("0"),
   },
   (t) => [unique("daily_account_metrics_unique").on(t.accountId, t.data)]
 );

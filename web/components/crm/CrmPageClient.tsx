@@ -8,6 +8,7 @@ import { CrmFunnelVelocity } from "@/components/crm/CrmFunnelVelocity";
 import { CrmMetricsComparison } from "@/components/crm/CrmMetricsComparison";
 import { CrmNoShowCard } from "@/components/crm/CrmNoShowCard";
 import { CrmResponseTime } from "@/components/crm/CrmResponseTime";
+import { CrmSalesReport } from "@/components/crm/CrmSalesReport";
 import { CrmTagBreakdown } from "@/components/crm/CrmTagBreakdown";
 import { CrmUnreadAlert } from "@/components/crm/CrmUnreadAlert";
 import { useToast } from "@/components/providers/ToastProvider";
@@ -106,6 +107,8 @@ export function CrmPageClient({
       {funnel && (
         <CrmFunnelSection pipelines={funnel.pipelines} steps={funnel.steps} deals={funnel.deals} />
       )}
+
+      <CrmSalesReport metrics={metrics} />
 
       <CrmMetricsComparison metrics={metrics} />
 
