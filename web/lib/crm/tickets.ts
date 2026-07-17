@@ -1,11 +1,23 @@
 import { crmFetch } from "./client";
 
+export type CrmTicketTracking = {
+  startedAt: string | null;
+  finishedAt: string | null;
+};
+
 export type CrmTicket = {
   id: number;
   status: string;
   isGroup: boolean;
-  updatedAt: string;
+  unreadMessages: number;
+  contactId: number | null;
+  queueId: number | null;
+  lastMessage: string | null;
+  lastMessageHour: string | null;
   createdAt: string;
+  updatedAt: string;
+  ticketTrakings?: CrmTicketTracking[];
+  contact?: { name: string | null; number: string | null };
 };
 
 export async function listTickets(apiKey: string, opts: { page?: number; limit?: number } = {}) {
@@ -48,4 +60,36 @@ export async function countTicketsUpdatedOn(apiKey: string, dateStr: string): Pr
     page++;
   }
   return seen.size;
+}
+
+const PAGE_CONCURRENCY = 4;
+
+// Sync completo (todos os tickets) — precisa pra tendência de tempo de resposta e
+// pro alerta de mensagens não lidas, que quer ver tickets abertos mesmo que não
+// tenham tido atividade hoje. A paginação já demonstrou devolver duplicatas entre
+// páginas (mesmo problema visto em /commercial-order), por isso dedupe por id.
+export async function listAllTickets(apiKey: string): Promise<CrmTicket[]> {
+  const first = await listTickets(apiKey, { page: 1, limit: 100 });
+  const totalPages = first.pagination?.totalPages ?? 1;
+  const byId = new Map<number, CrmTicket>();
+  for (const t of first.data) byId.set(t.id, t);
+
+  const remainingPages = Array.from({ length: Math.max(0, totalPages - 1) }, (_, i) => i + 2);
+  for (let i = 0; i < remainingPages.length; i += PAGE_CONCURRENCY) {
+    const batch = remainingPages.slice(i, i + PAGE_CONCURRENCY);
+    const results = await Promise.all(batch.map((page) => listTickets(apiKey, { page, limit: 100 })));
+    for (const res of results) for (const t of res.data) byId.set(t.id, t);
+  }
+
+  return [...byId.values()];
+}
+
+// Primeira resposta de um atendente = menor startedAt entre os "trakings" do
+// ticket. null se ninguém atendeu ainda.
+export function firstResponseAt(ticket: CrmTicket): string | null {
+  const started = (ticket.ticketTrakings ?? [])
+    .map((t) => t.startedAt)
+    .filter((s): s is string => Boolean(s))
+    .sort();
+  return started[0] ?? null;
 }

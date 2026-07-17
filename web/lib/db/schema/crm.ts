@@ -153,6 +153,34 @@ export const dailyAccountMetrics = pgTable(
   (t) => [unique("daily_account_metrics_unique").on(t.accountId, t.data)]
 );
 
+// Tickets (conversas de atendimento) sincronizados periodicamente — não via
+// webhook, é sync completo (cron a cada 3h). Usado pro alerta de mensagens não
+// lidas e pra medir tempo médio de primeira resposta.
+export const crmTickets = pgTable(
+  "crm_tickets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    accountId: uuid("account_id")
+      .notNull()
+      .references(() => crmAccounts.id, { onDelete: "cascade" }),
+    crmTicketId: text("crm_ticket_id").notNull(),
+    crmContactId: text("crm_contact_id"),
+    contactNome: text("contact_nome"),
+    contactNumero: text("contact_numero"),
+    status: text("status"),
+    isGroup: boolean("is_group").notNull().default(false),
+    unreadMessages: integer("unread_messages").notNull().default(0),
+    queueId: text("queue_id"),
+    lastMessage: text("last_message"),
+    lastMessageHour: timestamp("last_message_hour", { withTimezone: true }),
+    createdAtCrm: timestamp("created_at_crm", { withTimezone: true }),
+    updatedAtCrm: timestamp("updated_at_crm", { withTimezone: true }),
+    firstResponseAt: timestamp("first_response_at", { withTimezone: true }),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique("crm_tickets_account_unique").on(t.accountId, t.crmTicketId)]
+);
+
 export const webhookEventsLog = pgTable("webhook_events_log", {
   id: uuid("id").primaryKey().defaultRandom(),
   accountId: uuid("account_id").references(() => crmAccounts.id, { onDelete: "set null" }),

@@ -78,6 +78,20 @@
       "when": 1784340000000,
       "tag": "0010_deal_stage_events_account",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1784420000000,
+      "tag": "0011_crm_tickets",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1784425000000,
+      "tag": "0012_crm_tickets_contact",
+      "breakpoints": true
     }
   ]
 }

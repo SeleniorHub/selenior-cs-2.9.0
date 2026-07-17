@@ -83,3 +83,105 @@ export async function getFunnelVelocity(accountId: string): Promise<FunnelStepVe
     })
     .filter((s) => s.amostras > 0);
 }
+
+export type UnreadTicketAlert = {
+  crmTicketId: string;
+  contactNome: string | null;
+  unreadMessages: number;
+  lastMessage: string | null;
+  lastMessageHour: string | null;
+};
+
+export type UnreadTicketsSummary = {
+  conversas: number;
+  totalNaoLidas: number;
+  itens: UnreadTicketAlert[];
+};
+
+// unread_messages é estado atual do ticket (sincronizado a cada 3h, não é
+// histórico) — é literalmente "quantas mensagens estão esperando resposta agora".
+export async function getUnreadTicketsAlert(accountId: string, limit = 8): Promise<UnreadTicketsSummary> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("crm_tickets")
+    .select("crm_ticket_id, contact_nome, unread_messages, last_message, last_message_hour")
+    .eq("account_id", accountId)
+    .gt("unread_messages", 0)
+    .order("unread_messages", { ascending: false });
+  if (error) throw error;
+
+  const rows = data ?? [];
+  return {
+    conversas: rows.length,
+    totalNaoLidas: rows.reduce((s, r) => s + r.unread_messages, 0),
+    itens: rows.slice(0, limit).map((r) => ({
+      crmTicketId: r.crm_ticket_id,
+      contactNome: r.contact_nome,
+      unreadMessages: r.unread_messages,
+      lastMessage: r.last_message,
+      lastMessageHour: r.last_message_hour,
+    })),
+  };
+}
+
+export type ResponseTimeStats = {
+  amostras: number;
+  medianaMinutos: number | null;
+  semanas: { semana: string; medianaMinutos: number }[];
+};
+
+function median(nums: number[]): number | null {
+  if (!nums.length) return null;
+  const sorted = [...nums].sort((a, b) => a - b);
+  return sorted[Math.floor(sorted.length / 2)];
+}
+
+function isoWeekKey(dateStr: string): string {
+  const d = new Date(dateStr);
+  const dow = (d.getDay() + 6) % 7;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - dow);
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(monday);
+}
+
+// Usa mediana, não média — tickets antigos só respondidos muito depois (backlog)
+// distorcem a média pra um número sem sentido (achamos isso empiricamente: uma
+// conta deu média de 14 dias por causa de poucos tickets de meses atrás). Só olha
+// os últimos `daysBack` dias pra refletir desempenho atual, não histórico morto.
+export async function getResponseTimeStats(accountId: string, daysBack = 60): Promise<ResponseTimeStats> {
+  const supabase = await createClient();
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - daysBack);
+
+  const { data, error } = await supabase
+    .from("crm_tickets")
+    .select("created_at_crm, first_response_at")
+    .eq("account_id", accountId)
+    .not("first_response_at", "is", null)
+    .gte("created_at_crm", cutoff.toISOString());
+  if (error) throw error;
+
+  const withMinutes = (data ?? [])
+    .map((t) => ({
+      week: isoWeekKey(t.created_at_crm as string),
+      minutes: (new Date(t.first_response_at as string).getTime() - new Date(t.created_at_crm as string).getTime()) / 60000,
+    }))
+    .filter((t) => t.minutes >= 0);
+
+  const byWeek = new Map<string, number[]>();
+  for (const t of withMinutes) {
+    const arr = byWeek.get(t.week) ?? [];
+    arr.push(t.minutes);
+    byWeek.set(t.week, arr);
+  }
+
+  const semanas = [...byWeek.entries()]
+    .sort((a, b) => (a[0] < b[0] ? -1 : 1))
+    .map(([semana, minutos]) => ({ semana, medianaMinutos: median(minutos) ?? 0 }));
+
+  return {
+    amostras: withMinutes.length,
+    medianaMinutos: median(withMinutes.map((t) => t.minutes)),
+    semanas,
+  };
+}

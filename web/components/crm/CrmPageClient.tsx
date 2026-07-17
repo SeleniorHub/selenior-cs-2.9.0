@@ -7,10 +7,17 @@ import { AddCrmAccountModal } from "@/components/crm/AddCrmAccountModal";
 import { CrmFunnelVelocity } from "@/components/crm/CrmFunnelVelocity";
 import { CrmMetricsComparison } from "@/components/crm/CrmMetricsComparison";
 import { CrmNoShowCard } from "@/components/crm/CrmNoShowCard";
+import { CrmResponseTime } from "@/components/crm/CrmResponseTime";
+import { CrmUnreadAlert } from "@/components/crm/CrmUnreadAlert";
 import { useToast } from "@/components/providers/ToastProvider";
 import { setCrmAccountAtivo } from "@/lib/actions/crm-accounts";
 import type { CrmAccountWithClient } from "@/lib/data/crm-accounts";
-import type { FunnelStepVelocity, MeetingNoShowStats } from "@/lib/data/crm-insights";
+import type {
+  FunnelStepVelocity,
+  MeetingNoShowStats,
+  ResponseTimeStats,
+  UnreadTicketsSummary,
+} from "@/lib/data/crm-insights";
 import type { CrmDealRow, CrmPipelineRow, CrmPipelineStepRow, DailyAccountMetricRow } from "@/lib/types";
 
 export function CrmPageClient({
@@ -20,6 +27,8 @@ export function CrmPageClient({
   metrics,
   noShowStats,
   funnelVelocity,
+  unreadAlert,
+  responseTime,
   isAdmin,
   clientsWithoutAccount,
 }: {
@@ -29,6 +38,8 @@ export function CrmPageClient({
   metrics: DailyAccountMetricRow[];
   noShowStats: MeetingNoShowStats | null;
   funnelVelocity: FunnelStepVelocity[];
+  unreadAlert: UnreadTicketsSummary | null;
+  responseTime: ResponseTimeStats | null;
   isAdmin: boolean;
   clientsWithoutAccount: { id: string; nome: string }[];
 }) {
@@ -97,6 +108,11 @@ export function CrmPageClient({
       <div className="charts-grid">
         {noShowStats && <CrmNoShowCard stats={noShowStats} />}
         <CrmFunnelVelocity steps={funnelVelocity} />
+      </div>
+
+      <div className="charts-grid">
+        {unreadAlert && <CrmUnreadAlert summary={unreadAlert} />}
+        {responseTime && <CrmResponseTime stats={responseTime} />}
       </div>
 
       {isAdmin && (
